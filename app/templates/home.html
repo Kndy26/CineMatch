@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}CineMatch — Temukan film berikutnya{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <img class="hero-image" src="{{ url_for('static', path='/images/cinema-hero.webp') }}" alt="" fetchpriority="high">
+  <div class="shell hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">Rekomendasi film berbasis AI</p>
+      <h1>Temukan film<br><em>berikutnya.</em></h1>
+      <p class="hero-description">Mulai dari film yang kamu suka. Temukan judul lain dengan genre, suasana, dan tema yang serupa.</p>
+      <div class="action-row">
+        <a class="button button--gold" href="{{ url_for('discover') }}">Cari rekomendasi <span aria-hidden="true">↗</span></a>
+        <a class="text-link" href="#cara-kerja">Cara kerjanya <span aria-hidden="true">↓</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="shell section popular-section" aria-labelledby="popular-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="popular-title">Film populer</h2>
+      <p>Judul dengan jumlah rating terbanyak pada data awal MovieLens.</p>
+    </div>
+    <span class="section-rule" aria-hidden="true"></span>
+  </div>
+  <div class="poster-grid poster-grid--popular">
+    {% for movie in popular_movies %}
+      {% set art = artwork.get(movie.movie_id|string) %}
+      <button type="button" class="poster-card" data-movie-id="{{ movie.movie_id }}"{% if movie.tmdb_id %} data-tmdb-id="{{ movie.tmdb_id }}"{% endif %} aria-label="Detail {{ movie.title | film_title }}">
+        <span class="poster-image">
+          {% if art and art.poster %}
+            <img src="{{ url_for('static', path='/images/posters/' ~ movie.movie_id ~ '.jpg') }}" alt="" width="342" height="513" {% if loop.index > 3 %}loading="lazy"{% endif %}>
+          {% else %}
+            <span class="poster-fallback" aria-hidden="true">{{ movie.title | film_title }}</span>
+          {% endif %}
+        </span>
+        <span class="poster-title">{{ movie.title | film_title }}</span>
+        <span class="poster-meta">{{ movie.year or 'Tahun tidak tersedia' }} <span aria-hidden="true">·</span> {{ movie.train_rating_count | id_number }} rating</span>
+      </button>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="model-section" id="cara-kerja" aria-labelledby="model-title">
+  <div class="shell section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Di balik rekomendasi</p>
+        <h2 id="model-title">Cara kerja CineMatch</h2>
+        <p>Model K-Nearest Neighbors membandingkan fitur film dengan cosine similarity.</p>
+      </div>
+    </div>
+    <dl class="stats-strip">
+      <div><dt>Film dalam katalog</dt><dd>{{ dataset.catalog_movies | id_number }}</dd></div>
+      <div><dt>Rating historis</dt><dd>{{ dataset.rating_rows | id_number }}</dd></div>
+      <div><dt>Pengguna dievaluasi</dt><dd>{{ evaluated_users | id_number }}</dd></div>
+    </dl>
+    <div class="model-grid">
+      <article class="panel model-panel">
+        <h3>Dari pilihanmu ke hasil</h3>
+        <ol class="process-list">
+          <li><strong>Pilih film favorit.</strong> Gunakan satu hingga lima judul dan tambahkan filter genre jika diinginkan.</li>
+          <li><strong>Bandingkan fitur.</strong> Genre di-encode dan tag MovieLens diolah dengan TF-IDF sebelum model mencari film yang mirip.</li>
+          <li><strong>Temukan judul baru.</strong> Kandidat diambil dari tiap film pilihan hingga lima hasil. Match Score menunjukkan tingkat kemiripan fitur.</li>
+        </ol>
+      </article>
+      <article class="panel model-panel">
+        <h3>Evaluasi model</h3>
+        <p>Uji historis MovieLens 20M memakai satu film pilihan per pengguna untuk membandingkan lima hasil teratas KNN dan baseline popularitas.</p>
+        <figure class="evaluation-chart" aria-labelledby="chart-caption">
+          <figcaption id="chart-caption" class="visually-hidden">Grafik metrik top-5 dalam persen</figcaption>
+          <div class="chart-legend" aria-hidden="true">
+            <span class="chart-key chart-knn">KNN</span>
+            <span class="chart-key chart-popularity">Popularitas</span>
+          </div>
+          {% for key, label in evaluation_metrics %}
+            <div class="chart-group">
+              <h4>{{ label }}</h4>
+              {% for series, name in [('knn', 'KNN'), ('popularity', 'Popularitas')] %}
+                {% set value = metrics[series][key] * 100 %}
+                <div class="chart-line chart-{{ series }}">
+                  <span class="visually-hidden">{{ name }}</span>
+                  <span class="chart-track" aria-hidden="true">
+                    <span class="chart-bar" style="width: {{ '%.3f' | format(value * 100 / chart_limit) }}%"></span>
+                  </span>
+                  <span class="chart-value">{{ '%.2f' | format(value) | replace('.', ',') }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          <div class="chart-axis" aria-hidden="true">
+            {% for tick in chart_ticks %}<span>{{ tick }}%</span>{% endfor %}
+          </div>
+        </figure>
+        <details class="metric-details">
+          <summary>Lihat nilai lengkap</summary>
+          <table class="metric-table">
+            <thead><tr><th scope="col">Metrik</th><th scope="col">KNN</th><th scope="col">Popularitas</th></tr></thead>
+            <tbody>
+              {% for key, label in evaluation_metrics + (('mean_inference_ms', 'Inferensi rata-rata (ms)'),) %}
+                <tr><th scope="row">{{ label }}</th><td>{{ '%.4f' | format(metrics.knn[key]) | replace('.', ',') }}</td><td>{{ '%.4f' | format(metrics.popularity[key]) | replace('.', ',') }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </details>
+        {% if metrics.popularity.hit_rate_at_5 > metrics.knn.hit_rate_at_5 %}
+          <p class="fine-print">Baseline popularitas lebih sering menemukan kembali film yang disukai dalam data uji. Hasil ini dipengaruhi oleh ketersediaan rating dan tag historis.</p>
+        {% endif %}
+      </article>
+    </div>
+  </div>
+</section>
+{% endblock %}

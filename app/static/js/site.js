@@ -1,0 +1,175 @@
+const artwork = JSON.parse(document.querySelector("#movie-artwork").textContent);
+const tmdbEnabled = document.body.dataset.tmdbEnabled === "true";
+const metadataRequests = new Map();
+const percent = new Intl.NumberFormat("id-ID", { style: "percent", maximumFractionDigits: 0 });
+const number = new Intl.NumberFormat("id-ID");
+
+export function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+export function displayTitle(title) {
+  return title.replace(/ \(\d{4}\)$/, "").replace(/^(.+), (The|A|An)$/, "$2 $1");
+}
+
+export function matchScore(score) {
+  return `${percent.format(score)} Match`;
+}
+
+export async function api(path, options) {
+  const response = await fetch(path, options);
+  if (response.status === 204) return null;
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = typeof payload?.detail === "string" ? payload.detail : "Permintaan belum berhasil.";
+    throw new Error(detail);
+  }
+  return payload;
+}
+
+function addPosterFallback(image, title) {
+  const fallback = element("span", "poster-fallback", title);
+  fallback.setAttribute("aria-hidden", "true");
+  image.replaceWith(fallback);
+}
+
+function metadataFor(movie) {
+  const curated = artwork[movie.movie_id];
+  const local = {
+    poster_url: curated?.poster ? `/static/images/posters/${movie.movie_id}.jpg` : null,
+    synopsis: curated?.synopsis || null,
+    synopsis_language: curated?.synopsis ? "id-ID" : null,
+  };
+  if (!tmdbEnabled || !movie.tmdb_id || (local.poster_url && local.synopsis)) {
+    return Promise.resolve(local);
+  }
+  if (!metadataRequests.has(movie.movie_id)) {
+    const request = api(`/api/movies/${movie.movie_id}/metadata`).catch(() => local);
+    metadataRequests.set(movie.movie_id, request);
+  }
+  return metadataRequests.get(movie.movie_id);
+}
+
+function populatePoster(fallback, movie) {
+  const title = displayTitle(movie.title);
+  metadataFor(movie).then(({ poster_url }) => {
+    if (!poster_url) return;
+    const image = document.createElement("img");
+    image.alt = "";
+    image.loading = "lazy";
+    image.width = 342;
+    image.height = 513;
+    image.addEventListener("error", () => addPosterFallback(image, title), { once: true });
+    image.src = poster_url;
+    fallback.replaceWith(image);
+  });
+}
+
+function posterImage(movie) {
+  const poster = element("span", "poster-image");
+  const fallback = element("span", "poster-fallback", displayTitle(movie.title));
+  fallback.setAttribute("aria-hidden", "true");
+  poster.append(fallback);
+  populatePoster(fallback, movie);
+  return poster;
+}
+
+export function movieCard(movie) {
+  const title = displayTitle(movie.title);
+  const card = element("button", "poster-card");
+  card.type = "button";
+  card.dataset.movieId = movie.movie_id;
+  const poster = posterImage(movie);
+  if (movie.similarity_score !== undefined) {
+    const score = matchScore(movie.similarity_score);
+    poster.append(element("span", "match-label", score));
+    card.setAttribute("aria-label", `Detail ${title}, ${score}`);
+  } else {
+    card.setAttribute("aria-label", `Detail ${title}`);
+  }
+  const meta = [movie.year, ...movie.genres.slice(0, 2)].filter(Boolean).join(" · ");
+  card.append(poster, element("span", "poster-title", title), element("span", "poster-meta", meta));
+  return card;
+}
+
+for (const image of document.querySelectorAll(".poster-card img")) {
+  const title = image.closest(".poster-card").querySelector(".poster-title").textContent;
+  if (image.complete && image.naturalWidth === 0) {
+    addPosterFallback(image, title);
+  } else {
+    image.addEventListener("error", () => addPosterFallback(image, title), { once: true });
+  }
+}
+
+if (tmdbEnabled) {
+  for (const fallback of document.querySelectorAll(".poster-card[data-tmdb-id] .poster-fallback")) {
+    const card = fallback.closest(".poster-card");
+    populatePoster(fallback, {
+      title: card.querySelector(".poster-title").textContent,
+      movie_id: Number(card.dataset.movieId),
+      tmdb_id: Number(card.dataset.tmdbId),
+    });
+  }
+}
+
+const movieDialog = document.querySelector("#movie-dialog");
+const movieTitle = document.querySelector("#movie-dialog-title");
+const movieBody = document.querySelector("#movie-dialog-body");
+let movieRequest;
+
+movieDialog.addEventListener("close", () => movieRequest?.abort());
+document.addEventListener("click", async (event) => {
+  const opener = event.target.closest("button[data-movie-id]");
+  if (!opener) return;
+
+  movieRequest?.abort();
+  const request = new AbortController();
+  movieRequest = request;
+  movieTitle.textContent = "Detail film";
+  movieBody.replaceChildren(element("p", "muted", "Memuat detail film…"));
+  if (!movieDialog.open) movieDialog.showModal();
+
+  try {
+    const movie = await api(`/api/movies/${opener.dataset.movieId}`, { signal: request.signal });
+    if (request.signal.aborted) return;
+    movieTitle.textContent = displayTitle(movie.title);
+    const copy = element("div");
+    const meta = [movie.year, ...movie.genres].filter(Boolean).join(" · ");
+    const initialSynopsis = artwork[movie.movie_id]?.synopsis;
+    const synopsis = element("p", "", initialSynopsis || (
+      tmdbEnabled && movie.tmdb_id ? "Memuat sinopsis…" : "Sinopsis belum tersedia di CineMatch."
+    ));
+    copy.append(
+      element("p", "muted", meta),
+      synopsis,
+      element("p", "fine-print", `${number.format(movie.train_rating_count)} rating pada data awal MovieLens`),
+    );
+    const actions = element("div", "action-row");
+    const discover = element("a", "button button--gold", "Pilih untuk Discover");
+    discover.href = `/discover?movie=${movie.movie_id}`;
+    actions.append(discover);
+    if (movie.tmdb_id) {
+      const reference = element("a", "text-link", "Detail di TMDB ↗");
+      reference.href = `https://www.themoviedb.org/movie/${movie.tmdb_id}`;
+      reference.target = "_blank";
+      reference.rel = "noopener noreferrer";
+      actions.append(reference);
+    }
+    copy.append(actions);
+    const detail = element("div", "film-detail");
+    detail.append(posterImage(movie), copy);
+    movieBody.replaceChildren(detail);
+    const metadata = await metadataFor(movie);
+    if (!request.signal.aborted) {
+      synopsis.textContent = metadata.synopsis || "Sinopsis belum tersedia di CineMatch.";
+      if (metadata.synopsis_language) synopsis.lang = metadata.synopsis_language;
+    }
+  } catch (error) {
+    if (!request.signal.aborted) {
+      movieBody.replaceChildren(element("p", "notice--error", error.message));
+    }
+  }
+});

@@ -1,0 +1,5 @@
+[
+  {"role": "AI Engineer", "focus": "Dataset, pelatihan KNN, dan evaluasi model."},
+  {"role": "Backend Developer", "focus": "API FastAPI dan database PostgreSQL."},
+  {"role": "Frontend Developer", "focus": "Antarmuka, aksesibilitas, dan integrasi API."}
+]

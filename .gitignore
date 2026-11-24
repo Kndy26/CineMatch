@@ -1,0 +1,53 @@
+# Local credentials and private configuration
+.env
+.env.*
+!.env.example
+.envrc
+.pgpass
+pgpass.conf
+credentials.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+/secrets/
+/app/data/team.json
+/app/static/images/team/
+
+# Local database, dataset, and generated model files
+/.postgres/
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.sql.gz
+/archive/
+/data/
+/ml-20m/
+/ml-20m.zip
+/ml/data/
+/ml/artifacts/
+*.joblib
+*.npz
+
+# Local presentation material, notebook output, and third-party posters
+/docs/
+*.executed.ipynb
+/app/static/images/posters/
+
+# Python and development tools
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.log
+Thumbs.db
+.DS_Store

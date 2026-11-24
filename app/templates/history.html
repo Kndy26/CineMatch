@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}History — CineMatch{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/history.js') }}"></script>{% endblock %}
+
+{% block content %}
+<div class="shell page history-page">
+  <section class="page-heading">
+    <p class="eyebrow">History</p>
+    <h1>Riwayat rekomendasi.</h1>
+    <p>Buka hasil yang telah disimpan atau pakai lagi pilihan filmnya sebagai template.</p>
+  </section>
+  <noscript><p class="notice">Aktifkan JavaScript untuk melihat riwayat rekomendasi.</p></noscript>
+  <section aria-labelledby="history-list-title">
+    <div class="history-toolbar">
+      <h2 id="history-list-title">Sesi yang tersimpan</h2>
+      <label class="history-search">
+        <span class="visually-hidden">Cari riwayat</span>
+        <span class="search-icon" aria-hidden="true"></span>
+        <input type="search" id="history-search" placeholder="Cari film atau genre" maxlength="120" autocomplete="off">
+      </label>
+    </div>
+    <p id="history-status" class="field-message" role="status"></p>
+    <div id="history-empty" class="empty-state" hidden>
+      <span class="state-icon" aria-hidden="true">◷</span>
+      <h3 id="history-empty-title">Belum ada sesi tersimpan</h3>
+      <p id="history-empty-message">Buat rekomendasi pertamamu di Discover.</p>
+      <a id="history-empty-link" class="button button--quiet" href="{{ url_for('discover') }}">Buka Discover <span aria-hidden="true">↗</span></a>
+      <button id="history-clear-search" class="button button--quiet" type="button" hidden>Hapus pencarian</button>
+    </div>
+    <div id="history-loading" class="history-list" aria-hidden="true" hidden>
+      {% for card in range(2) %}<div class="skeleton skeleton--history"></div>{% endfor %}
+    </div>
+    <div class="history-list" id="history-list"></div>
+    <button id="history-retry" class="button button--quiet load-more" type="button" hidden>Coba lagi</button>
+    <button id="history-more" class="button button--quiet load-more" type="button" hidden>Muat lebih banyak</button>
+  </section>
+</div>
+
+<dialog class="dialog" id="history-dialog" aria-labelledby="history-dialog-title">
+  <div class="dialog-frame">
+    <form method="dialog" class="dialog-close">
+      <button type="submit" class="icon-button" aria-label="Tutup detail sesi">×</button>
+    </form>
+    <h2 id="history-dialog-title">Detail sesi</h2>
+    <div id="history-detail" aria-live="polite"></div>
+  </div>
+</dialog>
+
+<dialog class="dialog dialog--compact" id="delete-dialog" aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-note">
+  <div class="dialog-frame">
+    <h2 id="delete-dialog-title">Hapus sesi ini?</h2>
+    <p id="delete-dialog-note">Sesi <strong id="delete-session-name"></strong> dan hasilnya akan terhapus dari riwayat bersama.</p>
+    <p id="delete-status" class="field-message notice--error" role="status"></p>
+    <form id="delete-form" class="action-row">
+      <button id="delete-cancel" class="button button--quiet" type="button" autofocus>Batal</button>
+      <button id="delete-confirm" class="button button--danger" type="submit">Hapus sesi</button>
+    </form>
+  </div>
+</dialog>
+{% endblock %}

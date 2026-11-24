@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Discover — CineMatch{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/discover.js') }}"></script>{% endblock %}
+
+{% block content %}
+<div class="shell page">
+  <section class="page-heading">
+    <p class="eyebrow">Discover</p>
+    <h1>Rangkai selera filmmu.</h1>
+    <p>Pilih beberapa film favoritmu untuk menemukan rekomendasi yang berangkat dari seleramu.</p>
+  </section>
+  <noscript><p class="notice">Aktifkan JavaScript untuk mencari film dan mendapatkan rekomendasi.</p></noscript>
+  <div class="discover-grid">
+    <form id="discover-form" class="panel discover-form" data-max-movies="{{ max_movies }}">
+      <h2>Film pilihanmu</h2>
+      <p class="form-instruction" id="search-hint">Pilih 1–{{ max_movies }} film dari hasil pencarian.</p>
+      <div class="form-field">
+        <label for="movie-search">Cari judul film</label>
+        <div class="combobox" id="movie-combobox">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="movie-search" type="search" placeholder="Contoh: Interstellar" maxlength="120"
+                 autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+                 aria-expanded="false" aria-controls="movie-suggestions" aria-describedby="search-hint">
+          <ul id="movie-suggestions" class="suggestions" role="listbox" aria-label="Hasil pencarian film" hidden></ul>
+        </div>
+        <p id="movie-search-status" class="field-message" role="status"></p>
+      </div>
+
+      <div class="selected-area" id="selected-area" hidden>
+        <span class="field-label">Film terpilih</span>
+        <ul id="selected-movies" class="chips" aria-label="Film terpilih"></ul>
+      </div>
+
+      <div class="form-field genre-field">
+        <label for="genre">Filter genre <span class="muted">(opsional)</span></label>
+        <select id="genre" name="genre">
+          <option value="">Semua genre</option>
+          {% for genre in genres %}<option value="{{ genre }}">{{ genre }}</option>{% endfor %}
+        </select>
+      </div>
+      <button class="button button--gold form-submit" type="submit">Cari rekomendasi <span aria-hidden="true">↗</span></button>
+      <p id="discover-status" class="fine-print" role="status"></p>
+      <p class="fine-print privacy-note">Pilihan dan hasil akan disimpan ke riwayat bersama.</p>
+    </form>
+
+    <section class="results-panel" id="recommendations" aria-labelledby="results-title">
+      <div class="results-heading">
+        <h2 id="results-title" tabindex="-1">Hasil rekomendasi</h2>
+        <a id="saved-history-link" class="text-link" href="{{ url_for('history') }}" hidden>Lihat sesi <span aria-hidden="true">↗</span></a>
+      </div>
+      <p id="results-status" class="muted" role="status"></p>
+      <div id="discover-empty" class="empty-state">
+        <span class="state-icon" aria-hidden="true">✦</span>
+        <h3 id="discover-empty-title">Siap untuk menemukan film?</h3>
+        <p id="discover-empty-message">Tambahkan judul yang kamu suka, lalu cari rekomendasi.</p>
+        <button id="discover-reset-genre" class="button button--quiet" type="button" hidden>Cari tanpa filter</button>
+      </div>
+      <div id="recommendation-loading" class="poster-grid poster-grid--results" aria-hidden="true" hidden>
+        {% for card in range(3) %}
+          <div><div class="skeleton skeleton--poster"></div><div class="skeleton skeleton--line"></div></div>
+        {% endfor %}
+      </div>
+      <div id="recommendation-cards" class="poster-grid poster-grid--results"></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

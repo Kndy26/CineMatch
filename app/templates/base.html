@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101010">
+  <meta name="description" content="Temukan rekomendasi film berdasarkan judul yang kamu sukai.">
+  <title>{% block title %}CineMatch{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/site.css') }}">
+  <script id="movie-artwork" type="application/json">{{ artwork | tojson }}</script>
+  <script type="module" src="{{ url_for('static', path='/js/site.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</head>
+<body data-page="{{ page }}" data-tmdb-enabled="{{ 'true' if tmdb_enabled else 'false' }}">
+  <a class="skip-link" href="#main-content">Lewati ke konten</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="CineMatch Home">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span>Cine<span>Match</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        {% for route, label in [('home', 'Home'), ('discover', 'Discover'), ('history', 'History'), ('contact', 'Contact Us')] %}
+          <a href="{{ url_for(route) }}"{% if page == route %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <a class="brand brand--small" href="{{ url_for('home') }}">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span>Cine<span>Match</span></span>
+      </a>
+      <div class="footer-links">
+        <a href="{{ url_for('home') }}#cara-kerja">Tentang model</a>
+        <a href="{{ url_for('contact') }}">Tim pengembang</a>
+        <a href="{{ url_for('swagger_ui_html') }}">API</a>
+      </div>
+    </div>
+  </footer>
+
+  <dialog class="dialog" id="movie-dialog" aria-labelledby="movie-dialog-title">
+    <div class="dialog-frame">
+      <form method="dialog" class="dialog-close">
+        <button type="submit" class="icon-button" aria-label="Tutup detail film">×</button>
+      </form>
+      <h2 id="movie-dialog-title">Detail film</h2>
+      <div id="movie-dialog-body" aria-live="polite"></div>
+    </div>
+  </dialog>
+</body>
+</html>
