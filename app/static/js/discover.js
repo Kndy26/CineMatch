@@ -62,12 +62,13 @@ function showSelected() {
     const chip = element("button", "chip", `${title} ×`);
     chip.type = "button";
     chip.disabled = busy;
-    chip.setAttribute("aria-label", `Hapus ${title} dari pilihan`);
+    chip.setAttribute("aria-label", `Hapus ${title} dari pilihan film`);
     chip.addEventListener("click", () => {
       selected.delete(movie.movie_id);
       showSelected();
       resetResults();
       status.textContent = "";
+      searchStatus.textContent = `${title} dihapus dari pilihan.`;
       field.focus();
     });
     item.append(chip);
@@ -90,8 +91,9 @@ function choose(movie) {
     return;
   }
   selected.set(movie.movie_id, movie);
+  const title = displayTitle(movie.title);
   field.value = "";
-  searchStatus.textContent = "";
+  searchStatus.textContent = `${title} ditambahkan ke pilihan film.`;
   status.textContent = "";
   showSelected();
   resetResults();

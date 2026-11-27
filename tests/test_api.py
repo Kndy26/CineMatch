@@ -1,11 +1,12 @@
 import os
+import re
 import unittest
 from contextlib import AsyncExitStack
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
 from httpx import ASGITransport, AsyncClient, MockTransport, Response
-from sqlalchemy import create_engine, delete, func, select
+from sqlalchemy import create_engine, delete, func, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.database import get_session
@@ -54,9 +55,9 @@ class CatalogApiTests(AppTestCase):
         catalog = await self.client.get("/api/movies/111759")
         self.assertEqual(catalog.json()["tmdb_id"], 137113)
 
-    async def test_home_chart_renders_real_artifact_metrics(self):
+    async def test_model_chart_renders_real_artifact_metrics(self):
         report = app.state.recommender.evaluation
-        response = await self.client.get("/")
+        response = await self.client.get("/tentang-model")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Grafik metrik top-5", response.text)
         for method in ("knn", "popularity"):
@@ -216,6 +217,52 @@ class RecommendationApiTests(AppTestCase):
         fetched = await self.client.get(f"/api/recommendations/{saved['id']}")
         self.assertEqual(fetched.json()["results"], [])
         self.assertEqual(fetched.json()["inputs"][0]["movie_id"], 1)
+
+    async def test_spotlight_ranks_history_and_reset_restores_defaults(self):
+        def movie_ids(page):
+            return [int(value) for value in re.findall(r'class="spotlight-card" data-movie-id="(\d+)"', page.text)]
+
+        service = app.state.recommender
+        path = "/api/recommendations"
+        history = [
+            ([1], [(104841, .89), (296, .80), (3114, .70), (2571, .60), (356, .10)]),
+            ([109487], [(480, .99), (593, .85), (260, .75), (318, .65), (110, .20)]),
+        ]
+        # Keep the bulk deletion and all fixtures inside an outer transaction.
+        with self.engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                with patch("app.database.get_engine", return_value=connection):
+                    connection.execute(delete(RecommendationSession))
+                    defaults = await self.client.get("/")
+                    self.assertEqual(len(movie_ids(defaults)), 8)
+
+                    for seeds, results in history:
+                        matches = [(service.movie(movie_id), score) for movie_id, score in results]
+                        with patch.object(service, "recommend", return_value=matches):
+                            created = await self.client.post(path, json={"movie_ids": seeds})
+                        self.assertEqual(created.status_code, 201)
+                        connection.execute(
+                            update(RecommendationSession)
+                            .where(RecommendationSession.id == UUID(created.json()["id"]))
+                            .values(created_at=func.clock_timestamp())
+                        )
+
+                    personalized = await self.client.get("/")
+                    self.assertEqual(movie_ids(personalized), [109487, 480, 104841, 593, 296, 260, 3114, 318, 2571, 110])
+                    self.assertIn("Film pilihan", personalized.text)
+                    self.assertIn("99% Match", personalized.text)
+
+                    self.assertEqual((await self.client.delete(path)).status_code, 204)
+                    self.assertEqual((await self.client.delete(path)).status_code, 204)
+                    self.assertEqual((await self.client.get(path)).json()["items"], [])
+                    for model in (RecommendationInput, RecommendationResult):
+                        self.assertEqual(connection.scalar(select(func.count()).select_from(model)), 0)
+                    restored = await self.client.get("/")
+                    self.assertCountEqual(movie_ids(restored), movie_ids(defaults))
+                    self.assertNotIn('class="spotlight-badge"', restored.text)
+            finally:
+                transaction.rollback()
 
     async def test_database_rolls_back_session_on_result_failure(self):
         recommender = app.state.recommender

@@ -5,7 +5,6 @@
 {% block content %}
 <div class="shell page">
   <section class="page-heading">
-    <p class="eyebrow">Discover</p>
     <h1>Rangkai selera filmmu.</h1>
     <p>Pilih beberapa film favoritmu untuk menemukan rekomendasi yang berangkat dari seleramu.</p>
   </section>
@@ -56,7 +55,7 @@
         <button id="discover-reset-genre" class="button button--quiet" type="button" hidden>Cari tanpa filter</button>
       </div>
       <div id="recommendation-loading" class="poster-grid poster-grid--results" aria-hidden="true" hidden>
-        {% for card in range(3) %}
+        {% for card in range(5) %}
           <div><div class="skeleton skeleton--poster"></div><div class="skeleton skeleton--line"></div></div>
         {% endfor %}
       </div>

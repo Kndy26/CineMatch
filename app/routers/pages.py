@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from app.dependencies import Recommender
 from app.schemas import MAX_SEED_MOVIES
 from app.services.movie_metadata import ARTWORK
+from app.services.spotlight import spotlight_films
 
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -67,10 +68,11 @@ def home(request: Request, recommender: Recommender):
         for key, _ in EVALUATION_METRICS
     )
     axis_step = max(1, ceil(max_score * 20))
-    return render(
+    response = render(
         request,
         "home",
-        popular_movies=recommender.popular(6),
+        spotlight=spotlight_films(recommender),
+        popular_movies=recommender.popular(16),
         dataset=report["dataset"],
         metrics=metrics,
         evaluation_metrics=EVALUATION_METRICS,
@@ -78,6 +80,8 @@ def home(request: Request, recommender: Recommender):
         chart_ticks=range(0, 5 * axis_step + 1, axis_step),
         evaluated_users=report["evaluated_users"],
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @router.get("/discover", name="discover")
@@ -88,6 +92,28 @@ def discover(request: Request, recommender: Recommender):
 @router.get("/history", name="history")
 def history(request: Request):
     return render(request, "history")
+
+
+@router.get("/tentang-model", name="model")
+def model(request: Request, recommender: Recommender):
+    report = recommender.evaluation
+    metrics = report["metrics"]
+    max_score = max(
+        metrics[series][key]
+        for series in ("knn", "popularity")
+        for key, _ in EVALUATION_METRICS
+    )
+    axis_step = max(1, ceil(max_score * 20))
+    return render(
+        request,
+        "model",
+        dataset=report["dataset"],
+        metrics=metrics,
+        evaluation_metrics=EVALUATION_METRICS,
+        chart_limit=5 * axis_step,
+        chart_ticks=range(0, 5 * axis_step + 1, axis_step),
+        evaluated_users=report["evaluated_users"],
+    )
 
 
 @router.get("/contact", name="contact")

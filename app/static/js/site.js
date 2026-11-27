@@ -1,4 +1,4 @@
-const artwork = JSON.parse(document.querySelector("#movie-artwork").textContent);
+export const artwork = JSON.parse(document.querySelector("#movie-artwork").textContent);
 const tmdbEnabled = document.body.dataset.tmdbEnabled === "true";
 const metadataRequests = new Map();
 const percent = new Intl.NumberFormat("id-ID", { style: "percent", maximumFractionDigits: 0 });
@@ -31,7 +31,11 @@ export async function api(path, options) {
 }
 
 function addPosterFallback(image, title) {
-  const fallback = element("span", "poster-fallback", title);
+  const fallback = image.closest(".spotlight-media")
+    ? element("span", "spotlight-fallback", title)
+    : image.closest(".poster-media")
+      ? element("span", "poster-fallback-modern")
+      : element("span", "poster-fallback", title);
   fallback.setAttribute("aria-hidden", "true");
   image.replaceWith(fallback);
 }
@@ -83,20 +87,58 @@ export function movieCard(movie) {
   card.type = "button";
   card.dataset.movieId = movie.movie_id;
   const poster = posterImage(movie);
+  const metaParts = [movie.year, ...movie.genres.slice(0, 2)].filter(Boolean);
+  const meta = metaParts.join(" · ");
   if (movie.similarity_score !== undefined) {
     const score = matchScore(movie.similarity_score);
     poster.append(element("span", "match-label", score));
-    card.setAttribute("aria-label", `Detail ${title}, ${score}`);
+    card.setAttribute("aria-label", `Detail ${title}, ${meta ? meta + ', ' : ''}skor kemiripan ${score}`);
   } else {
-    card.setAttribute("aria-label", `Detail ${title}`);
+    card.setAttribute("aria-label", `Detail ${title}${meta ? ', ' + meta : ''}`);
   }
-  const meta = [movie.year, ...movie.genres.slice(0, 2)].filter(Boolean).join(" · ");
   card.append(poster, element("span", "poster-title", title), element("span", "poster-meta", meta));
   return card;
 }
 
-for (const image of document.querySelectorAll(".poster-card img")) {
-  const title = image.closest(".poster-card").querySelector(".poster-title").textContent;
+const popularPreview = document.querySelector("#popular-films");
+const popularToggle = document.querySelector("#popular-toggle");
+if (popularPreview && popularToggle) {
+  const cards = Array.from(popularPreview.querySelectorAll(".poster-card-modern"));
+  const label = popularToggle.firstElementChild;
+
+  function updatePopularPreview() {
+    const expanded = popularToggle.getAttribute("aria-expanded") === "true";
+    popularPreview.classList.toggle("is-collapsed", !expanded);
+    const visibleHeight = popularPreview.clientHeight;
+    popularToggle.hidden = !expanded && popularPreview.scrollHeight <= visibleHeight;
+    for (const card of cards) {
+      card.inert = !expanded && card.offsetTop + card.offsetHeight > visibleHeight;
+    }
+  }
+
+  popularToggle.addEventListener("click", () => {
+    const firstClippedCard = cards.find((card) => card.inert);
+    const expanded = popularToggle.getAttribute("aria-expanded") === "true";
+    popularToggle.setAttribute("aria-expanded", String(!expanded));
+    label.textContent = expanded ? "Tampilkan semua film populer" : "Tampilkan lebih sedikit";
+    updatePopularPreview();
+    if (expanded) {
+      popularToggle.scrollIntoView({ block: "center", behavior: "instant" });
+    } else {
+      firstClippedCard?.focus();
+    }
+  });
+
+  updatePopularPreview();
+  new ResizeObserver(updatePopularPreview).observe(popularPreview);
+}
+
+const renderedCard = ":is(.poster-card, .poster-card-modern, .spotlight-card)";
+const renderedTitle = ".poster-title, .spotlight-title";
+for (const image of document.querySelectorAll(`${renderedCard} img`)) {
+  const card = image.closest(renderedCard);
+  const title = card?.querySelector(renderedTitle)?.textContent;
+  if (!title) continue;
   if (image.complete && image.naturalWidth === 0) {
     addPosterFallback(image, title);
   } else {
@@ -105,13 +147,21 @@ for (const image of document.querySelectorAll(".poster-card img")) {
 }
 
 if (tmdbEnabled) {
-  for (const fallback of document.querySelectorAll(".poster-card[data-tmdb-id] .poster-fallback")) {
-    const card = fallback.closest(".poster-card");
-    populatePoster(fallback, {
-      title: card.querySelector(".poster-title").textContent,
-      movie_id: Number(card.dataset.movieId),
-      tmdb_id: Number(card.dataset.tmdbId),
-    });
+  const posterObserver = new IntersectionObserver((entries, observer) => {
+    for (const { target: fallback, isIntersecting } of entries) {
+      if (!isIntersecting) continue;
+      observer.unobserve(fallback);
+      const card = fallback.closest(renderedCard);
+      populatePoster(fallback, {
+        title: card.querySelector(renderedTitle).textContent,
+        movie_id: Number(card.dataset.movieId),
+        tmdb_id: Number(card.dataset.tmdbId),
+      });
+    }
+  }, { rootMargin: "200px" });
+
+  for (const fallback of document.querySelectorAll(`${renderedCard}[data-tmdb-id] :is(.poster-fallback, .poster-fallback-modern, .spotlight-fallback)`)) {
+    posterObserver.observe(fallback);
   }
 }
 
@@ -119,12 +169,17 @@ const movieDialog = document.querySelector("#movie-dialog");
 const movieTitle = document.querySelector("#movie-dialog-title");
 const movieBody = document.querySelector("#movie-dialog-body");
 let movieRequest;
+let lastMovieOpener = null;
 
-movieDialog.addEventListener("close", () => movieRequest?.abort());
+movieDialog.addEventListener("close", () => {
+  movieRequest?.abort();
+  lastMovieOpener?.focus();
+});
 document.addEventListener("click", async (event) => {
   const opener = event.target.closest("button[data-movie-id]");
   if (!opener) return;
 
+  lastMovieOpener = opener;
   movieRequest?.abort();
   const request = new AbortController();
   movieRequest = request;

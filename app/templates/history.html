@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block title %}History — CineMatch{% endblock %}
-{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/history.js') }}"></script>{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/history.js') }}?v=2"></script>{% endblock %}
 
 {% block content %}
 <div class="shell page history-page">
   <section class="page-heading">
-    <p class="eyebrow">History</p>
     <h1>Riwayat rekomendasi.</h1>
     <p>Buka hasil yang telah disimpan atau pakai lagi pilihan filmnya sebagai template.</p>
   </section>
@@ -13,11 +12,14 @@
   <section aria-labelledby="history-list-title">
     <div class="history-toolbar">
       <h2 id="history-list-title">Sesi yang tersimpan</h2>
-      <label class="history-search">
-        <span class="visually-hidden">Cari riwayat</span>
-        <span class="search-icon" aria-hidden="true"></span>
-        <input type="search" id="history-search" placeholder="Cari film atau genre" maxlength="120" autocomplete="off">
-      </label>
+      <div class="history-toolbar-actions">
+        <label class="history-search">
+          <span class="visually-hidden">Cari riwayat</span>
+          <span class="search-icon" aria-hidden="true"></span>
+          <input type="search" id="history-search" placeholder="Cari film atau genre" maxlength="120" autocomplete="off">
+        </label>
+        <button id="history-reset" class="button button--quiet delete-action" type="button" aria-haspopup="dialog">Reset preferensi</button>
+      </div>
     </div>
     <p id="history-status" class="field-message" role="status"></p>
     <div id="history-empty" class="empty-state" hidden>
@@ -50,7 +52,10 @@
         aria-describedby="delete-dialog-note">
   <div class="dialog-frame">
     <h2 id="delete-dialog-title">Hapus sesi ini?</h2>
-    <p id="delete-dialog-note">Sesi <strong id="delete-session-name"></strong> dan hasilnya akan terhapus dari riwayat bersama.</p>
+    <p id="delete-dialog-note">
+      <span id="delete-single-note">Sesi <strong id="delete-session-name"></strong> dan hasilnya akan terhapus dari riwayat bersama.</span>
+      <span id="delete-reset-note" hidden>Semua sesi dan hasil rekomendasi akan dihapus dari riwayat bersama. Carousel di beranda akan kembali ke pilihan awal yang diacak.</span>
+    </p>
     <p id="delete-status" class="field-message notice--error" role="status"></p>
     <form id="delete-form" class="action-row">
       <button id="delete-cancel" class="button button--quiet" type="button" autofocus>Batal</button>

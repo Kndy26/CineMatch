@@ -1,114 +1,192 @@
 {% extends "base.html" %}
-{% block title %}CineMatch — Temukan film berikutnya{% endblock %}
+{% block title %}CineMatch — Rekomendasi Film Berbasis AI{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ url_for('static', path='/js/hero-carousel.js') }}"></script>
+{% endblock %}
 
 {% block content %}
-<section class="hero">
-  <img class="hero-image" src="{{ url_for('static', path='/images/cinema-hero.webp') }}" alt="" fetchpriority="high">
-  <div class="shell hero-inner">
-    <div class="hero-copy">
-      <p class="eyebrow">Rekomendasi film berbasis AI</p>
-      <h1>Temukan film<br><em>berikutnya.</em></h1>
-      <p class="hero-description">Mulai dari film yang kamu suka. Temukan judul lain dengan genre, suasana, dan tema yang serupa.</p>
-      <div class="action-row">
-        <a class="button button--gold" href="{{ url_for('discover') }}">Cari rekomendasi <span aria-hidden="true">↗</span></a>
-        <a class="text-link" href="#cara-kerja">Cara kerjanya <span aria-hidden="true">↓</span></a>
+<section class="hero-tech">
+  <div class="shell hero-tech-grid">
+    <div class="hero-tech-content">
+      <h1 class="hero-headline">Temukan film<br><em>berikutnya.</em></h1>
+      <p class="hero-subtitle">Mulai dari film yang kamu sukai. CineMatch menganalisis kesamaan karakteristik genre dan tema untuk rekomendasi yang benar-benar akurat.</p>
+      <div class="action-row hero-actions">
+        <a class="button button--gold button--large" href="{{ url_for('discover') }}">Cari Rekomendasi <span aria-hidden="true">↗</span></a>
+        <a class="button button--quiet button--large" href="#cara-kerja">Cara Kerjanya <span aria-hidden="true">↓</span></a>
       </div>
     </div>
-  </div>
-</section>
 
-<section class="shell section popular-section" aria-labelledby="popular-title">
-  <div class="section-heading">
-    <div>
-      <h2 id="popular-title">Film populer</h2>
-      <p>Judul dengan jumlah rating terbanyak pada data awal MovieLens.</p>
-    </div>
-    <span class="section-rule" aria-hidden="true"></span>
-  </div>
-  <div class="poster-grid poster-grid--popular">
-    {% for movie in popular_movies %}
-      {% set art = artwork.get(movie.movie_id|string) %}
-      <button type="button" class="poster-card" data-movie-id="{{ movie.movie_id }}"{% if movie.tmdb_id %} data-tmdb-id="{{ movie.tmdb_id }}"{% endif %} aria-label="Detail {{ movie.title | film_title }}">
-        <span class="poster-image">
-          {% if art and art.poster %}
-            <img src="{{ url_for('static', path='/images/posters/' ~ movie.movie_id ~ '.jpg') }}" alt="" width="342" height="513" {% if loop.index > 3 %}loading="lazy"{% endif %}>
-          {% else %}
-            <span class="poster-fallback" aria-hidden="true">{{ movie.title | film_title }}</span>
-          {% endif %}
-        </span>
-        <span class="poster-title">{{ movie.title | film_title }}</span>
-        <span class="poster-meta">{{ movie.year or 'Tahun tidak tersedia' }} <span aria-hidden="true">·</span> {{ movie.train_rating_count | id_number }} rating</span>
-      </button>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="model-section" id="cara-kerja" aria-labelledby="model-title">
-  <div class="shell section">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Di balik rekomendasi</p>
-        <h2 id="model-title">Cara kerja CineMatch</h2>
-        <p>Model K-Nearest Neighbors membandingkan fitur film dengan cosine similarity.</p>
-      </div>
-    </div>
-    <dl class="stats-strip">
-      <div><dt>Film dalam katalog</dt><dd>{{ dataset.catalog_movies | id_number }}</dd></div>
-      <div><dt>Rating historis</dt><dd>{{ dataset.rating_rows | id_number }}</dd></div>
-      <div><dt>Pengguna dievaluasi</dt><dd>{{ evaluated_users | id_number }}</dd></div>
-    </dl>
-    <div class="model-grid">
-      <article class="panel model-panel">
-        <h3>Dari pilihanmu ke hasil</h3>
-        <ol class="process-list">
-          <li><strong>Pilih film favorit.</strong> Gunakan satu hingga lima judul dan tambahkan filter genre jika diinginkan.</li>
-          <li><strong>Bandingkan fitur.</strong> Genre di-encode dan tag MovieLens diolah dengan TF-IDF sebelum model mencari film yang mirip.</li>
-          <li><strong>Temukan judul baru.</strong> Kandidat diambil dari tiap film pilihan hingga lima hasil. Match Score menunjukkan tingkat kemiripan fitur.</li>
-        </ol>
-      </article>
-      <article class="panel model-panel">
-        <h3>Evaluasi model</h3>
-        <p>Uji historis MovieLens 20M memakai satu film pilihan per pengguna untuk membandingkan lima hasil teratas KNN dan baseline popularitas.</p>
-        <figure class="evaluation-chart" aria-labelledby="chart-caption">
-          <figcaption id="chart-caption" class="visually-hidden">Grafik metrik top-5 dalam persen</figcaption>
-          <div class="chart-legend" aria-hidden="true">
-            <span class="chart-key chart-knn">KNN</span>
-            <span class="chart-key chart-popularity">Popularitas</span>
-          </div>
-          {% for key, label in evaluation_metrics %}
-            <div class="chart-group">
-              <h4>{{ label }}</h4>
-              {% for series, name in [('knn', 'KNN'), ('popularity', 'Popularitas')] %}
-                {% set value = metrics[series][key] * 100 %}
-                <div class="chart-line chart-{{ series }}">
-                  <span class="visually-hidden">{{ name }}</span>
-                  <span class="chart-track" aria-hidden="true">
-                    <span class="chart-bar" style="width: {{ '%.3f' | format(value * 100 / chart_limit) }}%"></span>
-                  </span>
-                  <span class="chart-value">{{ '%.2f' | format(value) | replace('.', ',') }}%</span>
-                </div>
-              {% endfor %}
-            </div>
+    {% if spotlight %}
+      <section class="hero-carousel" aria-label="Pilihan film" aria-roledescription="karusel">
+        <div class="spotlight-stage" id="spotlight-stage">
+          {% for film in spotlight %}
+            {% set movie = film.movie %}
+            {% set art = artwork.get(movie.movie_id|string) %}
+            {% set title = movie.title | film_title %}
+            <button type="button" class="spotlight-card" data-movie-id="{{ movie.movie_id }}"{% if movie.tmdb_id %} data-tmdb-id="{{ movie.tmdb_id }}"{% endif %} aria-label="Detail {{ title }}"{% if not loop.first %} inert{% endif %}>
+              <span class="spotlight-media">
+                {% if art and art.poster %}
+                  <img src="{{ url_for('static', path='/images/posters/' ~ movie.movie_id ~ '.jpg') }}" alt="" width="342" height="513" draggable="false">
+                {% else %}
+                  <span class="spotlight-fallback" aria-hidden="true">{{ title }}</span>
+                {% endif %}
+                {% if film.is_choice %}
+                  <span class="spotlight-badge">Film pilihan</span>
+                {% elif film.score is not none %}
+                  <span class="spotlight-badge">{{ (film.score * 100 + 0.5) | int }}% Match</span>
+                {% endif %}
+              </span>
+              <span class="spotlight-info">
+                <span class="spotlight-tags">
+                  {% for genre in movie.genres[:2] %}
+                    <span class="spotlight-tag">{{ genre }}</span>
+                  {% endfor %}
+                </span>
+                <span class="spotlight-title">{{ title }}</span>
+                <span class="spotlight-meta">{{ movie.year ~ ' · ' if movie.year else '' }}{{ movie.train_rating_count | id_number }} rating historis</span>
+              </span>
+            </button>
           {% endfor %}
-          <div class="chart-axis" aria-hidden="true">
-            {% for tick in chart_ticks %}<span>{{ tick }}%</span>{% endfor %}
+        </div>
+        <div class="spotlight-controls" hidden>
+          <span class="spotlight-hint">Geser untuk menjelajah</span>
+          <div class="spotlight-navigation">
+            <button type="button" class="spotlight-control" data-carousel-step="-1" aria-label="Film sebelumnya" aria-controls="spotlight-stage"><span aria-hidden="true">‹</span></button>
+            <span class="spotlight-count" aria-hidden="true">01 / {{ '%02d' | format(spotlight | length) }}</span>
+            <button type="button" class="spotlight-control" data-carousel-step="1" aria-label="Film berikutnya" aria-controls="spotlight-stage"><span aria-hidden="true">›</span></button>
+            <button type="button" class="spotlight-control spotlight-playback" aria-label="Jeda putar otomatis" aria-controls="spotlight-stage"><span aria-hidden="true"></span></button>
           </div>
-        </figure>
-        <details class="metric-details">
-          <summary>Lihat nilai lengkap</summary>
-          <table class="metric-table">
-            <thead><tr><th scope="col">Metrik</th><th scope="col">KNN</th><th scope="col">Popularitas</th></tr></thead>
-            <tbody>
-              {% for key, label in evaluation_metrics + (('mean_inference_ms', 'Inferensi rata-rata (ms)'),) %}
-                <tr><th scope="row">{{ label }}</th><td>{{ '%.4f' | format(metrics.knn[key]) | replace('.', ',') }}</td><td>{{ '%.4f' | format(metrics.popularity[key]) | replace('.', ',') }}</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </details>
-        {% if metrics.popularity.hit_rate_at_5 > metrics.knn.hit_rate_at_5 %}
-          <p class="fine-print">Baseline popularitas lebih sering menemukan kembali film yang disukai dalam data uji. Hasil ini dipengaruhi oleh ketersediaan rating dan tag historis.</p>
-        {% endif %}
+          <span class="visually-hidden spotlight-announcement" aria-live="polite"></span>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section popular-section-modern" id="popular-movies" aria-labelledby="popular-heading">
+  <div class="shell">
+    <div class="section-heading-centered">
+      <h2 id="popular-heading">Film Populer</h2>
+      <p>Koleksi film dengan jumlah rating terbanyak dari basis data MovieLens.</p>
+    </div>
+    <div class="popular-preview" id="popular-films">
+      <div class="poster-grid-modern">
+        {% for movie in popular_movies %}
+          {% set art = artwork.get(movie.movie_id|string) %}
+          <button type="button" class="poster-card-modern" data-movie-id="{{ movie.movie_id }}"{% if movie.tmdb_id %} data-tmdb-id="{{ movie.tmdb_id }}"{% endif %} aria-label="Detail {{ movie.title | film_title }}, tahun {{ movie.year or 'tidak tersedia' }}, {{ movie.train_rating_count | id_number }} rating">
+            <span class="poster-media">
+              {% if art and art.poster %}
+                <img src="{{ url_for('static', path='/images/posters/' ~ movie.movie_id ~ '.jpg') }}" alt="" width="342" height="513" loading="lazy">
+              {% else %}
+                <span class="poster-fallback-modern" aria-hidden="true"></span>
+              {% endif %}
+            </span>
+            {% if movie.year %}<span class="poster-overlay-badge">{{ movie.year }}</span>{% endif %}
+            <span class="poster-meta-block">
+              <span class="poster-title">{{ movie.title | film_title }}</span>
+              <span class="poster-rating-info">{{ movie.train_rating_count | id_number }} rating historis</span>
+            </span>
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="button" class="button button--quiet popular-toggle" id="popular-toggle"
+            aria-expanded="false" aria-controls="popular-films" hidden>
+      <span>Tampilkan semua film populer</span>
+      <span class="popular-toggle-arrow" aria-hidden="true"></span>
+    </button>
+  </div>
+</section>
+
+<!-- SEKSI CARA KERJA (BENTO STRIP & CLEAN 3-STEP CARDS) -->
+<section class="section workflow-section" id="cara-kerja" aria-labelledby="workflow-heading">
+  <div class="shell">
+    <div class="section-heading-centered">
+      <h2 id="workflow-heading">Bagaimana CineMatch Bekerja</h2>
+      <p>Tiga tahapan cerdas menghubungkan film favoritmu dengan tontonan berkualitas selanjutnya.</p>
+    </div>
+
+    <!-- METRIK STATISTIK UTAMA (BENTO GRID METRIC STRIP) -->
+    <div class="bento-stats-grid">
+      <div class="bento-stat-card">
+        <span class="bento-stat-number">{{ dataset.catalog_movies | id_number }}</span>
+        <span class="bento-stat-label">Film dalam Katalog</span>
+        <p class="bento-stat-desc">Koleksi film lengkap dengan pemetaan genre dan tag kurasi MovieLens.</p>
+      </div>
+      <div class="bento-stat-card">
+        <span class="bento-stat-number">{{ dataset.rating_rows | id_number }}</span>
+        <span class="bento-stat-label">Rating Historis</span>
+        <p class="bento-stat-desc">Data ulasan pengguna nyata dari dataset MovieLens 20M.</p>
+      </div>
+      <div class="bento-stat-card">
+        <span class="bento-stat-number">{{ evaluated_users | id_number }}</span>
+        <span class="bento-stat-label">Pengguna Dievaluasi</span>
+        <p class="bento-stat-desc">Data pengujian offline untuk kalibrasi akurasi sistem rekomendasi.</p>
+      </div>
+    </div>
+
+    <!-- 3 TAHAPAN BERSIH BERNOMOR (TANPA TERMINAL PALSU) -->
+    <div class="clean-steps-grid">
+      <!-- LANGKAH 01 -->
+      <article class="clean-step-card">
+        <div class="step-numeral" aria-hidden="true">01</div>
+        <h3>Pilih Film Favoritmu</h3>
+        <p>Tentukan satu hingga lima judul film yang kamu sukai. Tambahkan filter genre opsional untuk mengarahkan tema hasil pencarian.</p>
+        <div class="clean-step-illustration" aria-hidden="true">
+          <div class="step-chip-row">
+            <span class="step-chip">Interstellar</span>
+            <span class="step-chip">Toy Story</span>
+          </div>
+        </div>
       </article>
+
+      <!-- LANGKAH 02 -->
+      <article class="clean-step-card">
+        <div class="step-numeral" aria-hidden="true">02</div>
+        <h3>Pembobotan Fitur & Cosine Distance</h3>
+        <p>Fitur genre dienkode multi-hot (bobot 75%) dan tag dihitung dengan TF-IDF (bobot 25%) untuk mengukur kedekatan di ruang berdimensi 24.129.</p>
+        <div class="clean-step-illustration" aria-hidden="true">
+          <div class="step-meter-block">
+            <div class="step-meter-label">
+              <span>Genre (75%) & Tag (25%)</span>
+              <span>Cosine Match</span>
+            </div>
+            <div class="step-meter-track">
+              <div class="step-meter-fill" style="width: 75%;"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- LANGKAH 03 -->
+      <article class="clean-step-card">
+        <div class="step-numeral" aria-hidden="true">03</div>
+        <h3>Dapatkan Rekomendasi Presisi</h3>
+        <p>Sistem menyajikan film terdekat dengan Match Score transparan serta menyimpannya ke riwayat sesi yang dapat dipakai ulang.</p>
+        <div class="clean-step-illustration" aria-hidden="true">
+          <div class="step-result-pill">
+            <span>Gravity (2013)</span>
+            <span class="pill-score">94% Match</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- CALL-TO-ACTION (CTA) BANNER SEBELUM FOOTER -->
+<section class="section cta-section">
+  <div class="shell">
+    <div class="cta-banner-large">
+      <div class="cta-glow-decor" aria-hidden="true"></div>
+      <div class="cta-content">
+        <h2>Siap menemukan film favoritmu berikutnya?</h2>
+        <p class="cta-subtext">Eksplorasi ribuan judul dengan sistem kurasi cerdas tanpa perlu login atau mendaftar akun.</p>
+        <div class="action-row cta-btn-row">
+          <a class="button button--gold button--large" href="{{ url_for('discover') }}">Mulai Cari Rekomendasi <span aria-hidden="true">↗</span></a>
+          <a class="button button--quiet button--large" href="{{ url_for('model') }}">Pelajari Evaluasi Model <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
     </div>
   </div>
 </section>

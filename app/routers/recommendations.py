@@ -124,6 +124,13 @@ def recommendation_detail(
     return history_item(saved, recommender)
 
 
+@router.delete("", status_code=204)
+def reset_recommendation_history(db: Database) -> Response:
+    with db.begin():
+        db.execute(delete(RecommendationSession))
+    return Response(status_code=204)
+
+
 @router.delete("/{session_id}", status_code=204)
 def delete_recommendation(session_id: UUID, db: Database) -> Response:
     statement = delete(RecommendationSession).where(

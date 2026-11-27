@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Tentang Model — CineMatch{% endblock %}
+
+{% block content %}
+<div class="shell page model-page">
+  <section class="page-heading">
+    <h1>Arsitektur & Evaluasi Model.</h1>
+    <p>Bagaimana model K-Nearest Neighbors dan pemrosesan TF-IDF menganalisis kesamaan karakteristik film untuk memberikan rekomendasi yang presisi.</p>
+  </section>
+
+  <section class="section" aria-labelledby="model-stats-title">
+    <h2 id="model-stats-title" class="visually-hidden">Statistik Dataset</h2>
+    <div class="bento-stats">
+      <article class="bento-card">
+        <span class="bento-icon" aria-hidden="true">🎬</span>
+        <div class="bento-value">{{ dataset.catalog_movies | id_number }}</div>
+        <div class="bento-label">Film dalam katalog MovieLens</div>
+      </article>
+      <article class="bento-card">
+        <span class="bento-icon" aria-hidden="true">⭐</span>
+        <div class="bento-value">{{ dataset.rating_rows | id_number }}</div>
+        <div class="bento-label">Rating historis terverifikasi</div>
+      </article>
+      <article class="bento-card">
+        <span class="bento-icon" aria-hidden="true">👥</span>
+        <div class="bento-value">{{ evaluated_users | id_number }}</div>
+        <div class="bento-label">Pengguna dalam evaluasi offline</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="pipeline-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="pipeline-title">Alur Pemrosesan Fitur</h2>
+        <p>Tiga tahapan pengolahan data mentah menjadi vektor kemiripan film.</p>
+      </div>
+    </div>
+    <div class="model-grid">
+      <article class="panel model-panel">
+        <h3>1. Multi-Hot Genre & TF-IDF Tags</h3>
+        <p>Genre diubah menjadi representasi multi-hot vektor, sedangkan tag MovieLens diproses menggunakan Term Frequency-Inverse Document Frequency (TF-IDF) untuk mengekstrak kata kunci esensial dari atmosfer film.</p>
+      </article>
+      <article class="panel model-panel">
+        <h3>2. Pembobotan & Cosine Similarity</h3>
+        <p>Fitur genre diberi bobot 75% dan tag 25%. K-Nearest Neighbors (KNN) mengukur sudut antarvektor film di ruang berdimensi 24.129 menggunakan cosine distance untuk menghasilkan skor kecocokan (Match Score).</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="eval-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="eval-title">Evaluasi Performa Model</h2>
+        <p>Uji historis MovieLens 20M membandingkan KNN berbasis konten dengan baseline popularitas.</p>
+      </div>
+    </div>
+
+    <article class="panel eval-panel">
+      <div class="eval-header">
+        <div>
+          <h3>Perbandingan Metrik Top-5</h3>
+          <p class="fine-print">Diuji pada 135.451 profil pengguna riwayat MovieLens 20M.</p>
+        </div>
+        <div class="chart-legend" aria-hidden="true">
+          <span class="chart-key chart-knn">KNN Berbasis Konten</span>
+          <span class="chart-key chart-popularity">Baseline Popularitas</span>
+        </div>
+      </div>
+
+      <figure class="evaluation-chart" aria-labelledby="chart-caption">
+        <figcaption id="chart-caption" class="visually-hidden">Grafik metrik top-5 dalam persen</figcaption>
+        {% for key, label in evaluation_metrics %}
+          <div class="chart-group">
+            <h4>{{ label }}</h4>
+            {% for series, name in [('knn', 'KNN'), ('popularity', 'Popularitas')] %}
+              {% set value = metrics[series][key] * 100 %}
+              <div class="chart-line chart-{{ series }}" role="group" aria-label="{{ name }}: {{ '%.2f' | format(value) | replace('.', ',') }}%">
+                <span class="visually-hidden">{{ name }}</span>
+                <span class="chart-track" aria-hidden="true">
+                  <span class="chart-bar" style="width: {{ '%.3f' | format(value * 100 / chart_limit) }}%"></span>
+                </span>
+                <span class="chart-value">{{ '%.2f' | format(value) | replace('.', ',') }}%</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <div class="chart-axis" aria-hidden="true">
+          {% for tick in chart_ticks %}<span>{{ tick }}%</span>{% endfor %}
+        </div>
+      </figure>
+
+      <details class="metric-details" open>
+        <summary>Tabel Lengkap Nilai Metrik</summary>
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th scope="col">Metrik</th>
+              <th scope="col">KNN</th>
+              <th scope="col">Popularitas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, label in evaluation_metrics + (('mean_inference_ms', 'Inferensi rata-rata (ms)'),) %}
+              <tr>
+                <th scope="row">{{ label }}</th>
+                <td>{{ '%.4f' | format(metrics.knn[key]) | replace('.', ',') }}</td>
+                <td>{{ '%.4f' | format(metrics.popularity[key]) | replace('.', ',') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+
+      <p class="fine-print note-box">
+        <strong>Analisis Hasil:</strong> Baseline popularitas memiliki hit rate lebih tinggi pada data historis karena pengguna cenderung menonton judul-judul arus utama. CineMatch sengaja menggunakan KNN berbasis konten di fitur Discover untuk membantu pengguna menemukan film yang relevan secara tematik dan atmosfer, bukan sekadar film yang sedang tren.
+      </p>
+    </article>
+  </section>
+
+  <section class="cta-banner">
+    <div class="cta-banner-inner">
+      <h2>Siap membuktikan kecerdasan rekomendasinya?</h2>
+      <p>Coba pilih beberapa film favoritmu dan temukan judul baru dalam hitungan detik.</p>
+      <div class="action-row">
+        <a class="button button--gold button--large" href="{{ url_for('discover') }}">Mulai Cari Rekomendasi <span>↗</span></a>
+        <a class="button button--quiet button--large" href="{{ url_for('home') }}">Kembali ke Beranda</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
