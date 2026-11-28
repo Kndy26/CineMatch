@@ -6,23 +6,77 @@
   <section class="page-heading">
     <h1>Arsitektur & Evaluasi Model.</h1>
     <p>Bagaimana model K-Nearest Neighbors dan pemrosesan TF-IDF menganalisis kesamaan karakteristik film untuk memberikan rekomendasi yang presisi.</p>
+    <nav class="toc-pills" aria-label="Daftar isi halaman">
+      <a class="toc-pill" href="#ringkasan-utama">Ringkasan Utama</a>
+      <a class="toc-pill" href="#pipeline-title">Cara Kerja</a>
+      <a class="toc-pill" href="#contoh-nyata">Contoh Nyata</a>
+      <a class="toc-pill" href="#eval-title">Evaluasi &amp; Metrik</a>
+    </nav>
+  </section>
+
+  <section class="section model-summary-section" id="ringkasan-utama" aria-labelledby="summary-title">
+    <article class="panel key-findings-card">
+      <div class="key-findings-body">
+        <span class="key-findings-tag">Ringkasan Utama</span>
+        <h2 id="summary-title">Mengapa CineMatch memakai KNN, bukan sekadar film populer?</h2>
+        <p>
+          Daftar film terpopuler memang lebih sering menebak tontonan arus utama yang sudah banyak dikenal. CineMatch memilih <strong>K-Nearest Neighbors (KNN) berbasis konten</strong> agar Anda bisa menemukan film baru yang selaras dengan nuansa, genre, dan tema favorit Anda—meskipun film tersebut tidak sedang viral.
+        </p>
+      </div>
+      <dl class="report-meta-strip">
+        <div class="report-meta-item">
+          <dt>Pengguna Uji</dt>
+          <dd>{{ evaluated_users | id_number }} profil MovieLens 20M</dd>
+        </div>
+        <div class="report-meta-item">
+          <dt>Metode Evaluasi</dt>
+          <dd>Train / Test Split Historis</dd>
+        </div>
+        <div class="report-meta-item">
+          <dt>Kecepatan Respons</dt>
+          <dd>{{ '%.2f' | format(metrics.knn.mean_inference_ms) | replace('.', ',') }} ms per pencarian</dd>
+        </div>
+      </dl>
+    </article>
   </section>
 
   <section class="section" aria-labelledby="model-stats-title">
     <h2 id="model-stats-title" class="visually-hidden">Statistik Dataset</h2>
     <div class="bento-stats">
       <article class="bento-card">
-        <span class="bento-icon" aria-hidden="true">🎬</span>
+        <span class="bento-icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="2" y1="7" x2="7" y2="7"></line>
+            <line x1="2" y1="17" x2="7" y2="17"></line>
+            <line x1="17" y1="17" x2="22" y2="17"></line>
+            <line x1="17" y1="7" x2="22" y2="7"></line>
+          </svg>
+        </span>
         <div class="bento-value">{{ dataset.catalog_movies | id_number }}</div>
         <div class="bento-label">Film dalam katalog MovieLens</div>
       </article>
       <article class="bento-card">
-        <span class="bento-icon" aria-hidden="true">⭐</span>
+        <span class="bento-icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </span>
         <div class="bento-value">{{ dataset.rating_rows | id_number }}</div>
         <div class="bento-label">Rating historis terverifikasi</div>
       </article>
       <article class="bento-card">
-        <span class="bento-icon" aria-hidden="true">👥</span>
+        <span class="bento-icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </span>
         <div class="bento-value">{{ evaluated_users | id_number }}</div>
         <div class="bento-label">Pengguna dalam evaluasi offline</div>
       </article>
@@ -32,20 +86,65 @@
   <section class="section" aria-labelledby="pipeline-title">
     <div class="section-heading">
       <div>
-        <h2 id="pipeline-title">Alur Pemrosesan Fitur</h2>
-        <p>Tiga tahapan pengolahan data mentah menjadi vektor kemiripan film.</p>
+        <h2 id="pipeline-title">Cara Kerja Rekomendasi</h2>
+        <p>Tiga langkah sederhana mengubah film favorit Anda menjadi daftar rekomendasi yang pas.</p>
       </div>
     </div>
-    <div class="model-grid">
-      <article class="panel model-panel">
-        <h3>1. Multi-Hot Genre & TF-IDF Tags</h3>
-        <p>Genre diubah menjadi representasi multi-hot vektor, sedangkan tag MovieLens diproses menggunakan Term Frequency-Inverse Document Frequency (TF-IDF) untuk mengekstrak kata kunci esensial dari atmosfer film.</p>
+    <div class="model-steps-grid">
+      <article class="panel model-step-card">
+        <span class="model-step-num">01</span>
+        <h3>Membaca Identitas Film</h3>
+        <p>Sistem mengubah genre dan kata kunci (<em>tag</em>) tiap film menjadi profil unik, sehingga CineMatch mengenali isi dan nuansa film di luar judulnya.</p>
       </article>
-      <article class="panel model-panel">
-        <h3>2. Pembobotan & Cosine Similarity</h3>
-        <p>Fitur genre diberi bobot 75% dan tag 25%. K-Nearest Neighbors (KNN) mengukur sudut antarvektor film di ruang berdimensi 24.129 menggunakan cosine distance untuk menghasilkan skor kecocokan (Match Score).</p>
+      <article class="panel model-step-card">
+        <span class="model-step-num">02</span>
+        <h3>Pembobotan Cerdas (75% / 25%)</h3>
+        <p>Genre utama diberi bobot 75% agar rekomendasi tetap di jalur yang sesuai, sementara 25% bobot <em>tag</em> memperhalus atmosfer dan tema ceritanya.</p>
+      </article>
+      <article class="panel model-step-card">
+        <span class="model-step-num">03</span>
+        <h3>Merangkai Multi-Pilihan</h3>
+        <p>Saat Anda memilih 2–5 film sekaligus di Discover, sistem mengambil kandidat terbaik secara bergiliran dari tiap judul agar hasilnya seimbang.</p>
       </article>
     </div>
+  </section>
+
+  <section class="section" id="contoh-nyata" aria-labelledby="example-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="example-title">Contoh Nyata di Balik Layar</h2>
+        <p>Gambaran singkat bagaimana satu film pilihan Anda dicocokkan dengan katalog MovieLens.</p>
+      </div>
+    </div>
+    <article class="panel example-flow-card">
+      <div class="example-flow-grid">
+        <div class="example-node">
+          <span class="example-node-label">1. Input Anda</span>
+          <h3>Interstellar (2014)</h3>
+          <div class="example-tags">
+            <span class="example-tag">Sci-Fi</span>
+            <span class="example-tag">Adventure</span>
+            <span class="example-tag">IMAX</span>
+          </div>
+        </div>
+
+        <div class="example-arrow" aria-hidden="true">→</div>
+
+        <div class="example-node example-node--process">
+          <span class="example-node-label">2. Pencocokan Fitur</span>
+          <p class="example-process-line"><strong>75% Genre:</strong> Sci-Fi &amp; Adventure</p>
+          <p class="example-process-line"><strong>25% Tag:</strong> <em>"space", "time", "survival"</em></p>
+        </div>
+
+        <div class="example-arrow" aria-hidden="true">→</div>
+
+        <div class="example-node example-node--output">
+          <span class="example-node-label">3. Hasil Rekomendasi</span>
+          <h3>Gravity (2013)</h3>
+          <span class="example-match-pill">Match Score Tinggi · Cosine Similarity</span>
+        </div>
+      </div>
+    </article>
   </section>
 
   <section class="section" aria-labelledby="eval-title">
@@ -68,11 +167,22 @@
         </div>
       </div>
 
+      {% set metric_descriptions = {
+        'precision_at_5': 'Ketepatan dari 5 film yang disarankan.',
+        'recall_at_5': 'Seberapa banyak film favorit pengguna yang berhasil tertangkap.',
+        'hit_rate_at_5': 'Persentase pengguna yang minimal mendapat 1 saran tepat.',
+        'ndcg_at_5': 'Kualitas urutan (apakah film paling cocok muncul di posisi paling atas).',
+        'mean_inference_ms': 'Rata-rata waktu sistem memproses satu kali pencarian rekomendasi.'
+      } %}
+
       <figure class="evaluation-chart" aria-labelledby="chart-caption">
         <figcaption id="chart-caption" class="visually-hidden">Grafik metrik top-5 dalam persen</figcaption>
         {% for key, label in evaluation_metrics %}
           <div class="chart-group">
-            <h4>{{ label }}</h4>
+            <div class="chart-group-header">
+              <h4>{{ label }}</h4>
+              <p class="metric-glossary">{{ metric_descriptions[key] }}</p>
+            </div>
             {% for series, name in [('knn', 'KNN'), ('popularity', 'Popularitas')] %}
               {% set value = metrics[series][key] * 100 %}
               <div class="chart-line chart-{{ series }}" role="group" aria-label="{{ name }}: {{ '%.2f' | format(value) | replace('.', ',') }}%">
@@ -95,17 +205,25 @@
         <table class="metric-table">
           <thead>
             <tr>
-              <th scope="col">Metrik</th>
-              <th scope="col">KNN</th>
-              <th scope="col">Popularitas</th>
+              <th scope="col">Metrik &amp; Arti</th>
+              <th scope="col">KNN (Konten)</th>
+              <th scope="col">Popularitas (Baseline)</th>
             </tr>
           </thead>
           <tbody>
-            {% for key, label in evaluation_metrics + (('mean_inference_ms', 'Inferensi rata-rata (ms)'),) %}
+            {% for key, label in evaluation_metrics + (('mean_inference_ms', 'Waktu Inferensi'),) %}
               <tr>
-                <th scope="row">{{ label }}</th>
-                <td>{{ '%.4f' | format(metrics.knn[key]) | replace('.', ',') }}</td>
-                <td>{{ '%.4f' | format(metrics.popularity[key]) | replace('.', ',') }}</td>
+                <th scope="row">
+                  <span class="metric-row-name">{{ label }}</span>
+                  <span class="metric-row-desc">{{ metric_descriptions[key] }}</span>
+                </th>
+                {% if key == 'mean_inference_ms' %}
+                  <td>{{ '%.2f' | format(metrics.knn[key]) | replace('.', ',') }} ms</td>
+                  <td>{{ '%.2f' | format(metrics.popularity[key]) | replace('.', ',') }} ms</td>
+                {% else %}
+                  <td>{{ '%.2f' | format(metrics.knn[key] * 100) | replace('.', ',') }}%</td>
+                  <td>{{ '%.2f' | format(metrics.popularity[key] * 100) | replace('.', ',') }}%</td>
+                {% endif %}
               </tr>
             {% endfor %}
           </tbody>

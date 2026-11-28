@@ -12,6 +12,9 @@ const loading = document.querySelector("#history-loading");
 const retry = document.querySelector("#history-retry");
 const more = document.querySelector("#history-more");
 const reset = document.querySelector("#history-reset");
+const errorState = document.querySelector("#history-error");
+const errorMessage = document.querySelector("#history-error-message");
+const errorRetry = document.querySelector("#history-error-retry");
 const detailDialog = document.querySelector("#history-dialog");
 const detailBody = document.querySelector("#history-detail");
 const deleteDialog = document.querySelector("#delete-dialog");
@@ -32,6 +35,7 @@ let nextOffset = null;
 let failedOffset = 0;
 let deleteSessionId = null;
 let deleting = false;
+let lastTimeGroup = null;
 
 function useTemplate(id, className = "button button--quiet") {
   const link = element("a", className, "Pakai lagi ↗");
@@ -97,10 +101,29 @@ function sessionCard(session) {
   remove.type = "button";
   remove.dataset.action = "delete";
   remove.setAttribute("aria-label", `Hapus sesi ${title}`);
-  actions.append(detail, useTemplate(session.id), remove);
+  actions.append(detail, useTemplate(session.id, "button button--quiet button--gold-subtle"), remove);
 
   card.append(main, actions);
   return card;
+}
+
+function sessionCount() {
+  return list.querySelectorAll("[data-session-id]").length;
+}
+
+function syncResetButton() {
+  reset.hidden = sessionCount() === 0;
+}
+
+function timeGroupFor(isoDate) {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startOfToday - startOfDate) / 86400000);
+  if (diffDays <= 0) return "Hari ini";
+  if (diffDays <= 7) return "7 hari terakhir";
+  return "Lebih lama";
 }
 
 async function loadHistory(offset = 0, successMessage = "") {
@@ -109,13 +132,18 @@ async function loadHistory(offset = 0, successMessage = "") {
   listRequest = request;
   const query = search.value.trim();
   empty.hidden = true;
+  errorState.hidden = true;
   more.hidden = true;
   retry.hidden = true;
   loading.hidden = offset !== 0;
   list.setAttribute("aria-busy", "true");
   status.classList.remove("notice--error");
   status.textContent = "Memuat riwayat…";
-  if (offset === 0) list.replaceChildren();
+  if (offset === 0) {
+    lastTimeGroup = null;
+    list.replaceChildren();
+    syncResetButton();
+  }
 
   try {
     const params = new URLSearchParams({ limit: "12", offset: String(offset) });
@@ -126,9 +154,21 @@ async function loadHistory(offset = 0, successMessage = "") {
     });
     if (request.signal.aborted) return;
     nextOffset = page.next_offset;
-    list.append(...page.items.map(sessionCard));
-    status.textContent = successMessage;
-    if (list.childElementCount === 0) {
+    for (const session of page.items) {
+      const group = timeGroupFor(session.created_at);
+      if (group !== lastTimeGroup) {
+        lastTimeGroup = group;
+        list.append(element("h3", "history-group-heading", group));
+      }
+      list.append(sessionCard(session));
+    }
+    syncResetButton();
+    const count = sessionCount();
+    const countText = count > 0
+      ? `Menampilkan ${count} sesi${query ? ` untuk "${query}"` : ""}${nextOffset !== null ? "+" : ""}.`
+      : "";
+    status.textContent = [successMessage, countText].filter(Boolean).join(" ");
+    if (count === 0) {
       emptyTitle.textContent = query ? "Tidak ada sesi yang cocok" : "Belum ada sesi tersimpan";
       emptyMessage.textContent = query ? "Coba kata kunci atau genre lain." : "Buat rekomendasi pertamamu di Discover.";
       emptyLink.hidden = Boolean(query);
@@ -138,10 +178,18 @@ async function loadHistory(offset = 0, successMessage = "") {
     more.hidden = nextOffset === null;
   } catch (error) {
     if (request.signal.aborted) return;
-    status.textContent = [successMessage, error.message].filter(Boolean).join(" ");
-    status.classList.add("notice--error");
     failedOffset = offset;
-    retry.hidden = false;
+    syncResetButton();
+    if (offset === 0) {
+      status.textContent = "";
+      status.classList.remove("notice--error");
+      errorMessage.textContent = error.message || "Terjadi gangguan koneksi atau database sedang tidak tersedia.";
+      errorState.hidden = false;
+    } else {
+      status.textContent = [successMessage, error.message].filter(Boolean).join(" ");
+      status.classList.add("notice--error");
+      retry.hidden = false;
+    }
   } finally {
     if (listRequest === request) {
       loading.hidden = true;
@@ -164,6 +212,7 @@ clearSearch.addEventListener("click", () => {
   loadHistory();
 });
 retry.addEventListener("click", () => loadHistory(failedOffset));
+errorRetry.addEventListener("click", () => loadHistory(0));
 more.addEventListener("click", () => {
   if (nextOffset !== null) loadHistory(nextOffset);
 });
@@ -283,6 +332,17 @@ deleteForm.addEventListener("submit", async (event) => {
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) loadHistory();
 });
-loadHistory();
-const activeSession = new URLSearchParams(location.search).get("session");
-if (activeSession && /^[0-9a-f-]{36}$/i.test(activeSession)) openDetail(activeSession);
+async function initHistory() {
+  await loadHistory();
+  const activeSession = new URLSearchParams(location.search).get("session");
+  if (activeSession && /^[0-9a-f-]{36}$/i.test(activeSession)) {
+    const card = list.querySelector(`[data-session-id="${CSS.escape(activeSession)}"]`);
+    if (card) {
+      card.scrollIntoView({ block: "center" });
+      lastDetailOpener = card.querySelector('button[data-action="detail"]');
+    }
+    openDetail(activeSession);
+  }
+}
+
+initHistory();

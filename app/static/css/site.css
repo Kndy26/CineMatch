@@ -529,6 +529,7 @@ h3 { font-size: 1.2rem; line-height: 1.35; font-weight: 700; letter-spacing: -.0
   border: solid currentColor;
   border-width: 0 2px 2px 0;
   transform: translateY(-2px) rotate(45deg);
+  transition: transform 220ms var(--ease-out);
 }
 .popular-toggle[aria-expanded="true"] .popular-toggle-arrow {
   transform: translateY(2px) rotate(225deg);
@@ -680,18 +681,103 @@ h3 { font-size: 1.2rem; line-height: 1.35; font-weight: 700; letter-spacing: -.0
 
 /* HALAMAN TENTANG MODEL (/tentang-model) - Dark & Gold Research Report */
 .model-page .page-heading { padding-bottom: 32px; border-bottom: 1px solid var(--line); }
+.model-page .section { padding-block: 36px; }
+.model-page section[id],
+.model-page h2[id] { scroll-margin-top: 96px; }
+.toc-pills {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px;
+}
+.toc-pill {
+  display: inline-flex; align-items: center; padding: 6px 14px;
+  border-radius: 999px; background: var(--raised); border: 1px solid var(--line);
+  color: var(--text-secondary); font-size: .82rem; font-weight: 600;
+  transition: transform .12s var(--ease-out), border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.toc-pill:hover {
+  border-color: var(--gold); color: var(--gold-light); background: var(--surface);
+}
+.toc-pill:active { transform: scale(0.97); }
+.model-summary-section { padding-bottom: 0; }
+.key-findings-card {
+  display: grid; gap: 24px; padding: 28px 32px;
+  border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, var(--raised) 60%);
+  border: 1px solid var(--gold-border);
+}
+.key-findings-tag {
+  display: inline-block; margin-bottom: 10px; padding: 4px 10px; border-radius: 999px;
+  background: var(--gold-muted); border: 1px solid var(--gold-border);
+  color: var(--gold); font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.key-findings-body h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem); margin-bottom: 10px; color: var(--text);
+}
+.key-findings-body p {
+  color: var(--text-secondary); font-size: .95rem; line-height: 1.65; max-width: 78ch;
+}
+.report-meta-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  margin: 0; padding-top: 20px; border-top: 1px solid var(--line);
+}
+.report-meta-item dt {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); margin-bottom: 4px;
+}
+.report-meta-item dd {
+  margin: 0; font-size: .92rem; font-weight: 650; color: var(--text);
+}
 .bento-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .bento-card {
   padding: 28px; border-radius: var(--radius-lg); background: var(--raised);
   border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px;
 }
-.bento-icon { font-size: 1.8rem; margin-bottom: 4px; }
+.bento-icon-wrap {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; margin-bottom: 6px; border-radius: 12px;
+  background: var(--gold-muted); border: 1px solid var(--gold-border); color: var(--gold);
+}
 .bento-value { font-size: 2.5rem; font-weight: 800; color: var(--gold); line-height: 1; letter-spacing: -.03em; }
 .bento-label { font-size: .88rem; color: var(--text-secondary); }
-.model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.model-panel { padding: 28px; border-radius: var(--radius-lg); background: var(--raised); border: 1px solid var(--line); }
-.model-panel h3 { margin-bottom: 10px; font-size: 1.25rem; color: var(--text); }
-.model-panel p { color: var(--text-secondary); line-height: 1.65; }
+.model-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.model-step-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 26px; border-radius: var(--radius-lg); background: var(--raised); border: 1px solid var(--line);
+}
+.model-step-num {
+  font-size: .8rem; font-weight: 800; letter-spacing: .08em; color: var(--gold);
+}
+.model-step-card h3 { font-size: 1.15rem; color: var(--text); margin: 0; }
+.model-step-card p { color: var(--text-secondary); line-height: 1.6; font-size: .92rem; margin: 0; }
+.example-flow-card {
+  padding: 28px; border-radius: var(--radius-lg); background: var(--raised); border: 1px solid var(--line);
+}
+.example-flow-grid {
+  display: grid; grid-template-columns: 1fr auto 1.15fr auto 1fr; gap: 18px; align-items: center;
+}
+.example-node {
+  display: flex; flex-direction: column; gap: 8px; padding: 18px;
+  border-radius: var(--radius); background: #0E0E12; border: 1px solid var(--line-subtle);
+}
+.example-node--output {
+  border-color: var(--gold-border);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, #0E0E12 100%);
+}
+.example-node-label {
+  font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gold);
+}
+.example-node h3 { font-size: 1.1rem; color: var(--text); margin: 0; }
+.example-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.example-tag {
+  padding: 3px 9px; border-radius: 6px; background: var(--surface);
+  border: 1px solid var(--line-subtle); font-size: .76rem; color: var(--text-secondary);
+}
+.example-process-line { margin: 0; font-size: .86rem; color: var(--text-secondary); line-height: 1.5; }
+.example-process-line strong { color: var(--text); }
+.example-match-pill {
+  display: inline-flex; width: fit-content; padding: 4px 10px; border-radius: 999px;
+  background: var(--gold-muted); border: 1px solid var(--gold-border);
+  color: var(--gold-light); font-size: .78rem; font-weight: 650;
+}
+.example-arrow { font-size: 1.4rem; color: var(--gold); text-align: center; font-weight: 700; }
 .eval-panel { padding: 32px; border-radius: var(--radius-lg); background: var(--raised); border: 1px solid var(--line); }
 .eval-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
 .eval-header h3 { font-size: 1.4rem; color: var(--text); }
@@ -707,8 +793,15 @@ h3 { font-size: 1.2rem; line-height: 1.35; font-weight: 700; letter-spacing: -.0
 .chart-knn { --series-color: var(--gold); }
 .chart-popularity { --series-color: #8E8E9C; }
 .chart-key::before { content: ""; width: 10px; height: 10px; background: var(--series-color); border-radius: 3px; }
-.chart-group { margin-top: 14px; }
-.chart-group h4 { margin: 0 0 6px; font-size: .85rem; font-weight: 600; color: var(--text-secondary); }
+.chart-group { margin-top: 18px; }
+.chart-group-header {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 4px 14px; margin-bottom: 8px;
+}
+.chart-group h4 { margin: 0; font-size: .88rem; font-weight: 700; color: var(--text); }
+.metric-glossary { margin: 0; font-size: .8rem; color: var(--text-secondary); }
+.metric-row-name { display: block; font-weight: 700; color: var(--text); }
+.metric-row-desc { display: block; margin-top: 2px; font-size: .78rem; font-weight: 400; color: var(--text-secondary); }
 .chart-line { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 10px; align-items: center; }
 .chart-track {
   display: block; height: 10px; border-radius: 4px;
@@ -989,6 +1082,15 @@ button.chip--filter:hover {
 .history-toolbar-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .history-search { width: min(100%, 305px); }
 .history-list { display: grid; gap: 12px; }
+.history-group-heading {
+  margin: 14px 0 2px;
+  font-size: .78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--gold);
+}
+.history-group-heading:first-child { margin-top: 2px; }
 .history-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px;
   padding: 16px 20px; border-radius: var(--radius-lg); background: var(--raised);
@@ -1013,8 +1115,30 @@ button.chip--filter:hover {
 .history-card-copy p { margin-top: 4px; }
 .history-card .action-row { gap: 8px; justify-content: end; }
 .history-card .button { min-height: 38px; padding-inline: 12px; }
+.button--gold-subtle {
+  border-color: var(--gold-border);
+  color: var(--gold-light);
+  background: rgba(212, 175, 55, 0.08);
+}
+.button--gold-subtle:hover {
+  background: rgba(212, 175, 55, 0.18);
+  border-color: var(--gold);
+  color: #FFFFFF;
+}
 .history-card .delete-action { color: var(--error); border-color: rgba(239, 68, 68, 0.25); }
 .history-card .delete-action:hover { background: var(--error-bg); }
+@media (hover: hover) and (pointer: fine) {
+  .history-card .delete-action {
+    opacity: 0.35;
+    border-color: transparent;
+    background: transparent;
+    transition: opacity .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+  }
+  .history-card:is(:hover, :focus-within) .delete-action {
+    opacity: 1;
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+}
 .load-more { margin-top: 17px; }
 .history-page #history-status { margin: 0 0 12px; }
 
@@ -1407,8 +1531,10 @@ button.chip--filter:hover {
   .hero-tech-content { display: flex; flex-direction: column; align-items: center; }
   .hero-actions { justify-content: center; }
   .bento-stats-grid, .bento-stats { grid-template-columns: 1fr; gap: 16px; }
+  .report-meta-strip { grid-template-columns: 1fr; gap: 12px; }
   .clean-steps-grid { grid-template-columns: 1fr; gap: 20px; }
-  .model-grid { grid-template-columns: 1fr; }
+  .model-grid, .model-steps-grid, .example-flow-grid { grid-template-columns: 1fr; }
+  .example-arrow { transform: rotate(90deg); }
   .footer-main-grid { grid-template-columns: 1fr; gap: 40px; }
   .footer-links-matrix { grid-template-columns: repeat(4, 1fr); gap: 28px 20px; }
 }
@@ -1443,6 +1569,10 @@ button.chip--filter:hover {
   .history-card { grid-template-columns: 1fr; padding: 14px; gap: 12px; }
   .history-card-main { align-items: flex-start; gap: 14px; }
   .history-card .action-row { justify-content: flex-start; }
+  .dialog { width: calc(100% - 20px); max-height: calc(100svh - 24px); }
+  .dialog-frame { padding: 20px 18px; }
+  .dialog .action-row { flex-direction: column; align-items: stretch; }
+  .dialog .action-row .button { width: 100%; }
   .footer-top-strip { flex-direction: column; align-items: flex-start; gap: 16px; }
   .footer-links-matrix { grid-template-columns: repeat(2, 1fr); gap: 28px 16px; }
   .footer-sub-strip { flex-direction: column; align-items: flex-start; gap: 10px; }

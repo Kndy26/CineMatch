@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}History — CineMatch{% endblock %}
-{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/history.js') }}?v=2"></script>{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/history.js') }}?v=5"></script>{% endblock %}
 
 {% block content %}
 <div class="shell page history-page">
@@ -18,16 +18,33 @@
           <span class="search-icon" aria-hidden="true"></span>
           <input type="search" id="history-search" placeholder="Cari film atau genre" maxlength="120" autocomplete="off">
         </label>
-        <button id="history-reset" class="button button--quiet delete-action" type="button" aria-haspopup="dialog">Reset preferensi</button>
+        <button id="history-reset" class="button button--quiet delete-action" type="button" aria-haspopup="dialog" hidden>Reset preferensi</button>
       </div>
     </div>
     <p id="history-status" class="field-message" role="status"></p>
     <div id="history-empty" class="empty-state" hidden>
-      <span class="state-icon" aria-hidden="true">◷</span>
+      <span class="state-icon state-icon--gold" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </span>
       <h3 id="history-empty-title">Belum ada sesi tersimpan</h3>
       <p id="history-empty-message">Buat rekomendasi pertamamu di Discover.</p>
       <a id="history-empty-link" class="button button--quiet" href="{{ url_for('discover') }}">Buka Discover <span aria-hidden="true">↗</span></a>
       <button id="history-clear-search" class="button button--quiet" type="button" hidden>Hapus pencarian</button>
+    </div>
+    <div id="history-error" class="empty-state empty-state--error" role="alert" hidden>
+      <span class="state-icon state-icon--error" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </span>
+      <h3>Gagal memuat riwayat</h3>
+      <p id="history-error-message">Terjadi gangguan koneksi atau database sedang tidak tersedia.</p>
+      <button id="history-error-retry" class="button button--gold" type="button">Coba lagi</button>
     </div>
     <div id="history-loading" class="history-list" aria-hidden="true" hidden>
       {% for card in range(2) %}<div class="skeleton skeleton--history"></div>{% endfor %}

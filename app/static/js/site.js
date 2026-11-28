@@ -105,6 +105,8 @@ const popularToggle = document.querySelector("#popular-toggle");
 if (popularPreview && popularToggle) {
   const cards = Array.from(popularPreview.querySelectorAll(".poster-card-modern"));
   const label = popularToggle.firstElementChild;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let heightAnimation = null;
 
   function updatePopularPreview() {
     const expanded = popularToggle.getAttribute("aria-expanded") === "true";
@@ -117,20 +119,72 @@ if (popularPreview && popularToggle) {
   }
 
   popularToggle.addEventListener("click", () => {
-    const firstClippedCard = cards.find((card) => card.inert);
-    const expanded = popularToggle.getAttribute("aria-expanded") === "true";
-    popularToggle.setAttribute("aria-expanded", String(!expanded));
-    label.textContent = expanded ? "Tampilkan semua film populer" : "Tampilkan lebih sedikit";
+    const wasExpanded = popularToggle.getAttribute("aria-expanded") === "true";
+    const newlyRevealed = cards.filter((card) => card.inert);
+    const firstClippedCard = newlyRevealed[0];
+    const fromHeight = popularPreview.getBoundingClientRect().height;
+
+    heightAnimation?.cancel();
+    popularPreview.style.maxBlockSize = "";
+    popularPreview.style.overflow = "";
+
+    popularToggle.setAttribute("aria-expanded", String(!wasExpanded));
+    label.textContent = wasExpanded ? "Tampilkan semua film populer" : "Tampilkan lebih sedikit";
     updatePopularPreview();
-    if (expanded) {
-      popularToggle.scrollIntoView({ block: "center", behavior: "instant" });
+
+    if (!reducedMotion) {
+      const toHeight = popularPreview.getBoundingClientRect().height;
+      if (Math.abs(toHeight - fromHeight) > 2) {
+        popularPreview.style.overflow = "hidden";
+        heightAnimation = popularPreview.animate(
+          [
+            { maxBlockSize: `${fromHeight}px` },
+            { maxBlockSize: `${toHeight}px` },
+          ],
+          {
+            duration: 260,
+            easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+          }
+        );
+        heightAnimation.onfinish = () => {
+          popularPreview.style.overflow = "";
+          heightAnimation = null;
+        };
+        heightAnimation.oncancel = () => {
+          popularPreview.style.overflow = "";
+          heightAnimation = null;
+        };
+      }
+
+      if (!wasExpanded && newlyRevealed.length) {
+        newlyRevealed.forEach((card, index) => {
+          card.animate(
+            [
+              { opacity: 0, transform: "translateY(14px) scale(0.97)" },
+              { opacity: 1, transform: "translateY(0) scale(1)" },
+            ],
+            {
+              duration: 240,
+              delay: Math.min(index * 25, 100),
+              easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+              fill: "both",
+            }
+          );
+        });
+      }
+    }
+
+    if (wasExpanded) {
+      popularToggle.scrollIntoView({ block: "center", behavior: reducedMotion ? "instant" : "smooth" });
     } else {
-      firstClippedCard?.focus();
+      firstClippedCard?.focus({ preventScroll: true });
     }
   });
 
   updatePopularPreview();
-  new ResizeObserver(updatePopularPreview).observe(popularPreview);
+  new ResizeObserver(() => {
+    if (!heightAnimation) updatePopularPreview();
+  }).observe(popularPreview);
 }
 
 const renderedCard = ":is(.poster-card, .poster-card-modern, .spotlight-card)";

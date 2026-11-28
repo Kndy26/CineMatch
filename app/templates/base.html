@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#0A0A0C">
   <meta name="description" content="Temukan rekomendasi film berdasarkan judul yang kamu sukai.">
   <title>{% block title %}CineMatch{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/site.css') }}?v=12">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/site.css') }}?v=19">
   <script id="movie-artwork" type="application/json">{{ artwork | tojson }}</script>
-  <script type="module" src="{{ url_for('static', path='/js/site.js') }}?v=2"></script>
+  <script type="module" src="{{ url_for('static', path='/js/site.js') }}?v=3"></script>
   {% block scripts %}{% endblock %}
 </head>
 <body data-page="{{ page }}" data-tmdb-enabled="{{ 'true' if tmdb_enabled else 'false' }}">
