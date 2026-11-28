@@ -55,6 +55,19 @@ if (-not (Test-Path -LiteralPath '.env')) {
 }
 ```
 
+> **Catatan (PostgreSQL Portabel `.postgres`):** Jika Anda menggunakan instance PostgreSQL portabel di folder `.postgres/` (port `55432`) dan muncul error `503 Service Unavailable` (*"Database tidak tersedia."*) setelah komputer/server restart, pastikan server PostgreSQL sudah dinyalakan sebelum menjalankan aplikasi:
+>
+> ```powershell
+> .\.postgres\pgsql\bin\pg_ctl.exe -D .\.postgres\data -l .\.postgres\server.log start
+> ```
+>
+> Untuk memeriksa status atau menghentikan server PostgreSQL portabel:
+>
+> ```powershell
+> .\.postgres\pgsql\bin\pg_ctl.exe -D .\.postgres\data status
+> .\.postgres\pgsql\bin\pg_ctl.exe -D .\.postgres\data stop
+> ```
+
 ### 3. Bangun artefak model
 
 Unduh **MovieLens 20M** dari GroupLens (via Kaggle) dan ekstrak file CSV langsung ke `ml/data/raw/`. Tambahkan `--data-dir <path>` pada perintah pelatihan jika dataset berada di folder lain. Pipeline menyimpan model, katalog, matriks fitur, dan evaluasi di `ml/artifacts/`. [Unduh MovieLens 20M (Kaggle)](https://www.kaggle.com/datasets/grouplens/movielens-20m-dataset)
