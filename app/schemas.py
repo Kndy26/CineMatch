@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 MovieId = Annotated[int, Field(strict=True, gt=0, le=2_147_483_647)]
@@ -33,6 +33,8 @@ class RecommendationRequest(BaseModel):
 
     movie_ids: list[MovieId] = Field(min_length=1, max_length=MAX_SEED_MOVIES)
     genre: str | None = Field(default=None, min_length=1, max_length=50)
+    year_from: int | None = Field(default=None, ge=1800, le=2100)
+    year_to: int | None = Field(default=None, ge=1800, le=2100)
 
     @field_validator("movie_ids")
     @classmethod
@@ -40,6 +42,12 @@ class RecommendationRequest(BaseModel):
         if len(movie_ids) != len(set(movie_ids)):
             raise ValueError("Setiap film hanya boleh dipilih sekali.")
         return movie_ids
+
+    @model_validator(mode="after")
+    def valid_year_range(self) -> "RecommendationRequest":
+        if self.year_from is not None and self.year_to is not None and self.year_from > self.year_to:
+            raise ValueError("Tahun awal tidak boleh lebih besar dari tahun akhir.")
+        return self
 
 
 class SelectedMovie(BaseModel):

@@ -57,7 +57,7 @@ if (-not (Test-Path -LiteralPath '.env')) {
 
 ### 3. Bangun artefak model
 
-Unduh **MovieLens 20M** dari GroupLens dan ekstrak file CSV langsung ke `ml/data/raw/`. Tambahkan `--data-dir <path>` pada perintah pelatihan jika dataset berada di folder lain. Pipeline menyimpan model, katalog, matriks fitur, dan evaluasi di `ml/artifacts/`. [Unduh MovieLens 20M](https://grouplens.org/datasets/movielens/20m/)
+Unduh **MovieLens 20M** dari GroupLens (via Kaggle) dan ekstrak file CSV langsung ke `ml/data/raw/`. Tambahkan `--data-dir <path>` pada perintah pelatihan jika dataset berada di folder lain. Pipeline menyimpan model, katalog, matriks fitur, dan evaluasi di `ml/artifacts/`. [Unduh MovieLens 20M (Kaggle)](https://www.kaggle.com/datasets/grouplens/movielens-20m-dataset)
 
 ```powershell
 .\.venv\Scripts\python.exe -m ml.train

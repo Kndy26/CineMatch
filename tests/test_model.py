@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
+from app.services.recommender import InvalidPreferences, RecommendationService
 from ml.data_sources import inspect_tag_genome, scan_ratings
 from ml.evaluate import ranking_metrics
 from ml.recommender import MovieRecommender, candidate_positions
@@ -95,3 +96,38 @@ class RankingTests(unittest.TestCase):
             recommender.recommend(99)
         with self.assertRaisesRegex(ValueError, "Unknown genre"):
             recommender.recommend(10, genre="Fantasy")
+
+    def test_year_range_filter_returns_highest_matches_within_range(self):
+        catalog = pd.DataFrame({
+            "movie_id": [1, 2, 3, 4, 5, 6],
+            "title": ["Seed (2000)", "Old (1990)", "MatchA (2010)", "MatchB (2015)", "NoYear", "Future (2022)"],
+            "year": pd.array([2000, 1990, 2010, 2015, pd.NA, 2022], dtype="Int64"),
+            "genres": ["Sci-Fi"] * 6,
+            "imdb_id": [None] * 6,
+            "tmdb_id": [None] * 6,
+            "train_rating_count": [100, 90, 50, 80, 70, 60],
+        })
+        features = csr_matrix([
+            [1.0, 0.0],
+            [0.99, 0.1],
+            [0.80, 0.6],
+            [0.95, 0.3],
+            [0.98, 0.2],
+            [0.97, 0.2],
+        ])
+        model = MovieRecommender.fit(features, catalog)
+        service = RecommendationService(model, {})
+
+        seeds = service.selected_movies([1])
+        ranged = service.recommend(seeds, genre=None, year_from=2005, year_to=2020)
+        self.assertEqual([movie.movie_id for movie, _ in ranged], [4, 3])
+        self.assertTrue(all(2005 <= movie.year <= 2020 for movie, _ in ranged))
+
+        from_only = service.recommend(seeds, genre=None, year_from=2015, year_to=None)
+        self.assertEqual([movie.movie_id for movie, _ in from_only], [6, 4])
+
+        to_only = service.recommend(seeds, genre=None, year_from=None, year_to=2010)
+        self.assertEqual([movie.movie_id for movie, _ in to_only], [2, 3])
+
+        with self.assertRaises(InvalidPreferences):
+            service.recommend(seeds, genre=None, year_from=2020, year_to=2010)

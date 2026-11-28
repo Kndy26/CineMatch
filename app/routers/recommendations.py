@@ -55,7 +55,12 @@ def create_recommendation(
     except InvalidPreferences as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
-    matches = recommender.recommend(movies, genre)
+    matches = recommender.recommend(
+        movies,
+        genre,
+        year_from=body.year_from,
+        year_to=body.year_to,
+    )
     saved = RecommendationSession(
         preferred_genre=genre,
         inputs=[

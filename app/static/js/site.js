@@ -228,3 +228,77 @@ document.addEventListener("click", async (event) => {
     }
   }
 });
+
+function initNavIndicator() {
+  const nav = document.querySelector(".site-nav");
+  const indicator = nav?.querySelector(".nav-indicator");
+  const activeLink = nav?.querySelector('a[aria-current="page"]');
+  if (!nav || !indicator || !activeLink) return;
+
+  const NAV_STORAGE_KEY = "cinematch:nav-indicator";
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const positionAt = (link) => {
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    const inset = 4;
+    const x = linkRect.left - navRect.left + inset;
+    const width = Math.max(0, linkRect.width - inset * 2);
+    return { x, width };
+  };
+
+  const target = positionAt(activeLink);
+  nav.classList.add("has-indicator");
+  indicator.style.width = `${target.width}px`;
+  indicator.style.transform = `translateX(${target.x}px) scaleX(1)`;
+  indicator.style.opacity = "1";
+
+  let prev = null;
+  try {
+    const raw = sessionStorage.getItem(NAV_STORAGE_KEY);
+    if (raw) {
+      prev = JSON.parse(raw);
+      sessionStorage.removeItem(NAV_STORAGE_KEY);
+    }
+  } catch {
+    prev = null;
+  }
+
+  if (
+    !reducedMotion &&
+    prev &&
+    typeof prev.x === "number" &&
+    typeof prev.width === "number" &&
+    target.width > 0 &&
+    (Math.abs(prev.x - target.x) > 1 || Math.abs(prev.width - target.width) > 1)
+  ) {
+    indicator.animate(
+      [
+        { transform: `translateX(${prev.x}px) scaleX(${prev.width / target.width})` },
+        { transform: `translateX(${target.x}px) scaleX(1)` },
+      ],
+      {
+        duration: 220,
+        easing: "cubic-bezier(0.77, 0, 0.175, 1)",
+        fill: "both",
+      }
+    );
+  }
+
+  const saveOrigin = () => {
+    try {
+      sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(positionAt(activeLink)));
+    } catch {
+      // Abaikan jika sessionStorage diblokir
+    }
+  };
+
+  window.addEventListener("pagehide", saveOrigin);
+  window.addEventListener("resize", () => {
+    const updated = positionAt(activeLink);
+    indicator.style.width = `${updated.width}px`;
+    indicator.style.transform = `translateX(${updated.x}px) scaleX(1)`;
+  });
+}
+
+initNavIndicator();

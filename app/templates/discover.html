@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Discover — CineMatch{% endblock %}
-{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/discover.js') }}"></script>{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='/js/discover.js') }}?v=6"></script>{% endblock %}
 
 {% block content %}
 <div class="shell page">
@@ -30,14 +30,45 @@
         <ul id="selected-movies" class="chips" aria-label="Film terpilih"></ul>
       </div>
 
+      <div class="filter-section-header">
+        <span class="field-label">Filter tambahan <span class="muted">(opsional)</span></span>
+        <button id="reset-form-filters" class="link-reset" type="button" hidden>Reset filter</button>
+      </div>
+
       <div class="form-field genre-field">
-        <label for="genre">Filter genre <span class="muted">(opsional)</span></label>
+        <label for="genre">Genre</label>
+        <div class="genre-quick-pills" id="genre-quick-pills" role="group" aria-label="Pilihan cepat genre">
+          {% for g in ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Thriller', 'Animation'] if g in genres %}
+            <button type="button" class="genre-pill" data-genre="{{ g }}" aria-pressed="false">{{ g }}</button>
+          {% endfor %}
+        </div>
         <select id="genre" name="genre">
           <option value="">Semua genre</option>
           {% for genre in genres %}<option value="{{ genre }}">{{ genre }}</option>{% endfor %}
         </select>
       </div>
-      <button class="button button--gold form-submit" type="submit">Cari rekomendasi <span aria-hidden="true">↗</span></button>
+
+      <div class="form-field year-range-field">
+        <span class="field-label">Rentang tahun rilis <span class="muted">(opsional)</span></span>
+        <div class="year-range-inputs">
+          <div class="year-input-group">
+            <label for="year-from" class="visually-hidden">Tahun awal</label>
+            <input id="year-from" name="year_from" type="number" inputmode="numeric"
+                   min="{{ min_year }}" max="{{ max_year }}" placeholder="Dari ({{ min_year }})">
+          </div>
+          <span class="year-range-separator" aria-hidden="true">–</span>
+          <div class="year-input-group">
+            <label for="year-to" class="visually-hidden">Tahun akhir</label>
+            <input id="year-to" name="year_to" type="number" inputmode="numeric"
+                   min="{{ min_year }}" max="{{ max_year }}" placeholder="Sampai ({{ max_year }})">
+          </div>
+        </div>
+      </div>
+      <button class="button button--gold form-submit" type="submit">
+        <span class="btn-spinner" aria-hidden="true" hidden></span>
+        <span class="btn-label">Cari rekomendasi</span>
+        <span class="btn-arrow" aria-hidden="true">↗</span>
+      </button>
       <p id="discover-status" class="fine-print" role="status"></p>
       <p class="fine-print privacy-note">Pilihan dan hasil akan disimpan ke riwayat bersama.</p>
     </form>
@@ -47,12 +78,42 @@
         <h2 id="results-title" tabindex="-1">Hasil rekomendasi</h2>
         <a id="saved-history-link" class="text-link" href="{{ url_for('history') }}" hidden>Lihat sesi <span aria-hidden="true">↗</span></a>
       </div>
+      <ul id="active-filters" class="chips active-filters" aria-label="Filter aktif" hidden></ul>
       <p id="results-status" class="muted" role="status"></p>
       <div id="discover-empty" class="empty-state">
-        <span class="state-icon" aria-hidden="true">✦</span>
+        <span id="discover-empty-icon" class="state-icon state-icon--gold" aria-hidden="true">
+          <svg class="icon-zero" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="2" y1="7" x2="7" y2="7"></line>
+            <line x1="2" y1="17" x2="7" y2="17"></line>
+            <line x1="17" y1="17" x2="22" y2="17"></line>
+            <line x1="17" y1="7" x2="22" y2="7"></line>
+          </svg>
+          <svg class="icon-no-results" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" hidden>
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </span>
         <h3 id="discover-empty-title">Siap untuk menemukan film?</h3>
         <p id="discover-empty-message">Tambahkan judul yang kamu suka, lalu cari rekomendasi.</p>
+        <button id="discover-quick-start" class="button button--quiet" type="button">Coba kombinasi populer <span aria-hidden="true">✦</span></button>
         <button id="discover-reset-genre" class="button button--quiet" type="button" hidden>Cari tanpa filter</button>
+      </div>
+      <div id="discover-error" class="empty-state empty-state--error" role="alert" hidden>
+        <span class="state-icon state-icon--error" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </span>
+        <h3 id="discover-error-title">Gagal memuat rekomendasi</h3>
+        <p id="discover-error-message">Terjadi gangguan koneksi atau layanan sedang tidak tersedia.</p>
+        <button id="discover-retry" class="button button--gold" type="button">Coba lagi</button>
       </div>
       <div id="recommendation-loading" class="poster-grid poster-grid--results" aria-hidden="true" hidden>
         {% for card in range(5) %}

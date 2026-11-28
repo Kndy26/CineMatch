@@ -86,7 +86,14 @@ def home(request: Request, recommender: Recommender):
 
 @router.get("/discover", name="discover")
 def discover(request: Request, recommender: Recommender):
-    return render(request, "discover", genres=recommender.genres, max_movies=MAX_SEED_MOVIES)
+    return render(
+        request,
+        "discover",
+        genres=recommender.genres,
+        max_movies=MAX_SEED_MOVIES,
+        min_year=recommender.min_year,
+        max_year=recommender.max_year,
+    )
 
 
 @router.get("/history", name="history")

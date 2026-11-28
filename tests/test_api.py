@@ -117,6 +117,9 @@ class CatalogApiTests(AppTestCase):
             {"movie_ids": [2147483647]},
             {"movie_ids": [1], "genre": "Unknown"},
             {"movie_ids": [1], "genre": "  "},
+            {"movie_ids": [1], "year_from": 2020, "year_to": 2010},
+            {"movie_ids": [1], "year_from": 1700},
+            {"movie_ids": [1], "year_to": 2200},
         ):
             with self.subTest(payload=payload):
                 response = await self.client.post("/api/recommendations", json=payload)

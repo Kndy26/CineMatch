@@ -47,6 +47,13 @@ class RecommendationService:
         self._titles = [search_titles(movie.title) for movie in self._movies]
         self.genres = sorted(model.genre_masks)
         self._genre_names = {genre.casefold(): genre for genre in self.genres}
+        years = [movie.year for movie in self._movies if movie.year is not None]
+        self.min_year = min(years) if years else 1900
+        self.max_year = max(years) if years else 2026
+        self._years = np.array(
+            [movie.year if movie.year is not None else -1 for movie in self._movies],
+            dtype=np.int64,
+        )
 
     @classmethod
     def load(cls, artifact_dir: Path = ARTIFACT_DIR) -> "RecommendationService":
@@ -97,10 +104,27 @@ class RecommendationService:
             raise InvalidPreferences(f"Genre tidak ditemukan: {genre}")
         return canonical
 
-    def recommend(self, seeds: list[Movie], genre: str | None) -> list[tuple[Movie, float]]:
+    def recommend(
+        self,
+        seeds: list[Movie],
+        genre: str | None,
+        year_from: int | None = None,
+        year_to: int | None = None,
+    ) -> list[tuple[Movie, float]]:
+        if year_from is not None and year_to is not None and year_from > year_to:
+            raise InvalidPreferences("Tahun awal tidak boleh lebih besar dari tahun akhir.")
+
         seed_rows = [self.model.movie_rows[movie.movie_id] for movie in seeds]
         excluded = set(seed_rows)
         allowed = self.model.genre_masks.get(genre)
+        year_mask = None
+        if year_from is not None or year_to is not None:
+            year_mask = self._years > 0
+            if year_from is not None:
+                year_mask &= self._years >= year_from
+            if year_to is not None:
+                year_mask &= self._years <= year_to
+
         best_scores = np.zeros(len(self._movies))
         queues = deque()
 
@@ -110,6 +134,8 @@ class RecommendationService:
             eligible = scores > 0
             if allowed is not None:
                 eligible &= allowed[rows]
+            if year_mask is not None:
+                eligible &= year_mask[rows]
             queues.append(iter(rows[eligible]))
 
         # Give each selected film a turn before taking a second neighbor from any film.
